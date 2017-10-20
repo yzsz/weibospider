@@ -89,6 +89,13 @@ def get_weibo_info_detail(each, html):
         wb_data.weibo_video = ''
 
     try:
+        location = each.find(attrs={'node-type': 'feed_content'}).find(attrs={'node-type': 'feed_list_content'}).find(
+            attrs={'class': 'W_ficon ficon_cd_place'}).parent.extract()
+        wb_data.weibo_location = location['title']
+    except Exception:
+        wb_data.weibo_location = ''
+
+    try:
         wb_data.weibo_cont = each.find(attrs={'node-type': 'feed_content'}).find(
             attrs={'node-type': 'feed_list_content'}).text.strip()
     except Exception:

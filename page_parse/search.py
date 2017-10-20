@@ -118,6 +118,12 @@ def get_weibo_info(each, html):
             wb_data.praise_num = int(feed_action.find(attrs={'action-type': 'feed_list_like'}).find('em').text)
         except (AttributeError, ValueError):
             wb_data.praise_num = 0
+    try:
+        location = each.find(attrs={'class': 'comment_txt'}).find(
+            attrs={'class': 'W_ico12 icon_cd_place'}).parent.parent.extract()
+        wb_data.weibo_location = location['title']
+    except Exception:
+        wb_data.weibo_location = ''
 
     try:
         wb_data.weibo_cont = each.find(attrs={'class': 'comment_txt'}).text.strip()
