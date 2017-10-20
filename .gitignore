@@ -1,5 +1,6 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea
+weibospider.iml
 __pycache__/
 logs
 celerybeat-schedule.db
