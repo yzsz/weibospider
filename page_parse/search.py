@@ -97,8 +97,8 @@ def get_weibo_info(each, html):
         wb_data.create_time = ''
     else:
         create_time = int(create_time) / 1000  # 时间戳单位不同
-        create_time = datetime.fromtimestamp(create_time)
-        wb_data.create_time = create_time.strftime("%Y-%m-%d %H:%M")
+        wb_data.create_time = datetime.fromtimestamp(create_time)
+        # wb_data.create_time = create_time.strftime("%Y-%m-%d %H:%M")
 
     try:
         feed_action = each.find(attrs={'class': 'feed_action'})

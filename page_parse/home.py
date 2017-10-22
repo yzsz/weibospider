@@ -2,6 +2,7 @@
 import re
 import json
 import urllib.parse
+from datetime import datetime
 
 from bs4 import BeautifulSoup
 
@@ -65,6 +66,7 @@ def get_weibo_info_detail(each, html):
 
     time_url = each.find(attrs={'node-type': 'feed_list_item_date'})
     wb_data.create_time = time_url.get('title', '')
+    wb_data.create_time = datetime.strptime(wb_data.create_time, '%Y-%m-%d %H:%M')
     wb_data.weibo_url = time_url.get('href', '')
     if ROOT_URL not in wb_data.weibo_url:
         wb_data.weibo_url = '{}://{}{}'.format(PROTOCOL, ROOT_URL, wb_data.weibo_url)

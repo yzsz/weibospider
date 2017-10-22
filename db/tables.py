@@ -1,5 +1,5 @@
 # -*-coding:utf-8 -*-
-from sqlalchemy import Table, Column, INTEGER, String, Text
+from sqlalchemy import Table, Column, INTEGER, String, Text, TIMESTAMP
 from db.basic_db import metadata
 
 # login table
@@ -64,7 +64,7 @@ weibo_data = Table('weibo_data', metadata,
                    Column("is_origin", INTEGER, default=1, server_default='1'),
                    Column("device", String(200), default='', server_default=''),
                    Column("weibo_url", String(300)),
-                   Column("create_time", String(200)),
+                   Column("create_time", TIMESTAMP),
                    Column("comment_crawled", INTEGER, default=0, server_default='0'),
                    Column("repost_crawled", INTEGER, default=0, server_default='0'),
                    )
