@@ -39,7 +39,7 @@ seed_ids = Table('seed_ids', metadata,
                  Column("uid", String(20), unique=True),
                  Column("is_crawled", INTEGER, default=0, server_default='0'),
                  Column("other_crawled", INTEGER, default=0, server_default='0'),
-                 Column("home_crawled", INTEGER, default=0, server_default='0'),
+                 Column("home_outdated", INTEGER, default=0, server_default='0'),
                  )
 
 # search keywords table
@@ -64,7 +64,7 @@ weibo_data = Table('weibo_data', metadata,
                    Column("is_origin", INTEGER, default=1, server_default='1'),
                    Column("device", String(200), default='', server_default=''),
                    Column("weibo_url", String(300)),
-                   Column("create_time", TIMESTAMP),
+                   Column("create_time", TIMESTAMP, index=True),
                    Column("comment_crawled", INTEGER, default=0, server_default='0'),
                    Column("repost_crawled", INTEGER, default=0, server_default='0'),
                    )
