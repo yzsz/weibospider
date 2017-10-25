@@ -7,7 +7,7 @@ from page_parse.user import public
 from page_get.basic import get_page
 from db.wb_data import insert_weibo_datas
 from config.conf import get_max_home_page
-from db.seed_ids import (get_home_ids,
+from db.seed_ids import (get_home_ids_all,
                          set_seed_home_crawled
                          )
 from page_parse.home import (get_wbdata_fromweb,
@@ -77,7 +77,7 @@ def crawl_weibo_datas(uid):
 def excute_home_task():
     # you can have many strategies to crawl user's home page, here we choose table seed_ids's uid
     # whose home_crawl is 0
-    id_objs = get_home_ids()
+    id_objs = get_home_ids_all()
     for id_obj in id_objs:
         app.send_task('tasks.home.crawl_weibo_datas', args=(id_obj.uid,), queue='home_crawler',
                       routing_key='home_info')

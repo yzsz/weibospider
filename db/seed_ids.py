@@ -13,7 +13,7 @@ def get_seed_ids():
     return db_session.query(SeedIds.uid).filter(text('is_crawled=0')).all()
 
 
-def get_home_ids():
+def get_home_ids_all():
     """
     Get all user id who's home pages need to be crawled
     :return: user ids

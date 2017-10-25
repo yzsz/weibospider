@@ -39,6 +39,7 @@ seed_ids = Table('seed_ids', metadata,
                  Column("uid", String(20), unique=True),
                  Column("is_crawled", INTEGER, default=0, server_default='0'),
                  Column("other_crawled", INTEGER, default=0, server_default='0'),
+                 Column("home_crawled", INTEGER, default=0, server_default='0'),
                  Column("home_outdated", INTEGER, default=0, server_default='0'),
                  )
 
