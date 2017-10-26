@@ -21,6 +21,14 @@ def get_home_ids_all():
     return db_session.query(SeedIds.uid).filter(text('home_crawled=0')).all()
 
 
+def get_home_ids_active():
+    """
+    Get all active user ids
+    :return: user ids
+    """
+    return db_session.query(SeedIds.uid).filter(text('home_crawled=1 and home_outdated=0')).all()
+
+
 @db_commit_decorator
 def set_seed_crawled(uid, result):
     """
