@@ -65,7 +65,7 @@ def set_seed_other_crawled(uid):
     """
     seed = get_seed_by_id(uid)
     if seed is None:
-        seed = SeedIds(uid=uid, is_crawled=1, other_crawled=1, home_crawled=1)
+        seed = SeedIds(uid=uid, is_crawled=1, other_crawled=1, home_crawled=1, home_outdated=1)
         db_session.add(seed)
     else:
         seed.other_crawled = 1
@@ -73,15 +73,17 @@ def set_seed_other_crawled(uid):
 
 
 @db_commit_decorator
-def set_seed_home_crawled(uid):
+def set_seed_home_crawled(uid, outdated):
     """
     :param uid: user id
+    :param outdated: whether the user's home page is outdated
     :return: None
     """
     seed = get_seed_by_id(uid)
     if seed is None:
-        seed = SeedIds(uid=uid, is_crawled=0, other_crawled=0, home_crawled=1)
+        seed = SeedIds(uid=uid, is_crawled=0, other_crawled=0, home_crawled=1, home_outdated=outdated)
         db_session.add(seed)
     else:
         seed.home_crawled = 1
+        seed.home_outdated = outdated
     db_session.commit()

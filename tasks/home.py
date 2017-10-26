@@ -41,6 +41,7 @@ def crawl_ajax_page(url):
 def crawl_weibo_datas(uid):
     limit = get_max_home_page()
     cur_page = 1
+    outdated = 0
     while cur_page <= limit:
         url = home_url.format(uid, cur_page)
         html = get_page(url)
@@ -59,6 +60,7 @@ def crawl_weibo_datas(uid):
 
         if cur_page == 1:
             # here we use local call to get total page number
+            outdated = 1  # TODO check time
             total_page = get_total_page(crawl_ajax_page(ajax_url_1))
 
         if total_page < limit:
@@ -70,7 +72,7 @@ def crawl_weibo_datas(uid):
 
         app.send_task('tasks.home.crawl_ajax_page', args=(ajax_url_1,), queue='ajax_home_crawler',
                       routing_key='ajax_home_info')
-    set_seed_home_crawled(uid)
+    set_seed_home_crawled(uid, outdated)
 
 
 @app.task
