@@ -1,12 +1,14 @@
 # coding:utf-8
 import time
+import datetime
 
 from logger.log import crawler
 from tasks.workers import app
 from page_parse.user import public
 from page_get.basic import get_page
 from db.wb_data import insert_weibo_datas
-from config.conf import get_max_home_page
+from config.conf import (get_max_home_page,
+                         get_outdated_days)
 from db.seed_ids import (get_home_ids_all,
                          set_seed_home_crawled
                          )
@@ -59,8 +61,9 @@ def crawl_weibo_datas(uid):
         ajax_url_1 = ajax_url.format(domain, 1, domain, uid, cur_page, cur_page, cur_time+100)
 
         if cur_page == 1:
+            if (datetime.datetime.now() - weibo_datas[0].create_time).days >= get_outdated_days():
+                outdated = 1
             # here we use local call to get total page number
-            outdated = 1  # TODO check time
             total_page = get_total_page(crawl_ajax_page(ajax_url_1))
 
         if total_page < limit:

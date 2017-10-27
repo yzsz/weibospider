@@ -102,3 +102,6 @@ def get_cookie_expire_time():
 def get_email_args():
     return cf.get('email')
 
+
+def get_outdated_days():
+    return cf.get('outdated_days')

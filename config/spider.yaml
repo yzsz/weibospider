@@ -78,3 +78,4 @@ email:
     subject: Warning Of Weibo Spider
     warning_info: Please find out the reason why the spider stops working
 
+outdated_days: 90
