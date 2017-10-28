@@ -10,8 +10,10 @@ from db.wb_data import insert_weibo_datas
 from config.conf import (get_max_home_page,
                          get_outdated_days)
 from db.seed_ids import (get_home_ids_all,
+                         get_home_ids_active,
                          set_seed_home_crawled
                          )
+from db.wb_data import get_wb_by_mid
 from page_parse.home import (get_wbdata_fromweb,
                              get_home_wbdata_byajax,
                              get_total_page
@@ -61,8 +63,8 @@ def crawl_weibo_datas(uid):
         ajax_url_1 = ajax_url.format(domain, 1, domain, uid, cur_page, cur_page, cur_time+100)
 
         if cur_page == 1:
-            if (datetime.datetime.now() - weibo_datas[0].create_time).days >= get_outdated_days():
-                outdated = 1
+            if (datetime.datetime.now() - weibo_datas[0].create_time).days < get_outdated_days():
+                outdated = 0
             # here we use local call to get total page number
             total_page = get_total_page(crawl_ajax_page(ajax_url_1))
 
@@ -78,6 +80,43 @@ def crawl_weibo_datas(uid):
     set_seed_home_crawled(uid, outdated)
 
 
+@app.task(ignore_result=True)
+def crawl_weibo_datas_newest(uid):
+    limit = get_max_home_page()
+    cur_page = 1
+    while cur_page <= limit:
+        url = home_url.format(uid, cur_page)
+        html = get_page(url)
+        weibo_datas = get_wbdata_fromweb(html)
+
+        if not weibo_datas:
+            crawler.warning("user {} has no weibo".format(uid))
+            return
+        if get_wb_by_mid(weibo_datas[0].weibo_id):
+            return
+
+        insert_weibo_datas(weibo_datas)
+
+        domain = public.get_userdomain(html)
+        cur_time = int(time.time()*1000)
+        ajax_url_0 = ajax_url.format(domain, 0, domain, uid, cur_page, cur_page, cur_time)
+        ajax_url_1 = ajax_url.format(domain, 1, domain, uid, cur_page, cur_page, cur_time+100)
+
+        if cur_page == 1:
+            # here we use local call to get total page number
+            total_page = get_total_page(crawl_ajax_page(ajax_url_1))
+
+        if total_page < limit:
+            limit = total_page
+
+        cur_page += 1
+        app.send_task('tasks.home.crawl_ajax_page', args=(ajax_url_0,), queue='ajax_home_crawler',
+                      routing_key='ajax_home_info')
+
+        app.send_task('tasks.home.crawl_ajax_page', args=(ajax_url_1,), queue='ajax_home_crawler',
+                      routing_key='ajax_home_info')
+
+
 @app.task
 def excute_home_task():
     # you can have many strategies to crawl user's home page, here we choose table seed_ids's uid
@@ -86,3 +125,13 @@ def excute_home_task():
     for id_obj in id_objs:
         app.send_task('tasks.home.crawl_weibo_datas', args=(id_obj.uid,), queue='home_crawler',
                       routing_key='home_info')
+
+
+@app.task
+def excute_home_newest_task():
+    # you can have many strategies to crawl user's home page, here we choose table seed_ids's uid
+    # whose home_crawl is 0
+    id_objs = get_home_ids_active()
+    for id_obj in id_objs:
+        app.send_task('tasks.home.crawl_weibo_datas_newest', args=(id_obj.uid,), queue='home_newest_crawler',
+                      routing_key='home_newest_info')

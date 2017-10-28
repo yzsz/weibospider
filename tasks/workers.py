@@ -76,6 +76,7 @@ app.conf.update(
         Queue('fans_followers', exchange=Exchange('fans_followers', type='direct'), routing_key='for_fans_followers'),
 
         Queue('home_crawler', exchange=Exchange('home_crawler', type='direct'), routing_key='home_info'),
+        Queue('home_newest_crawler', exchange=Exchange('home_newest_crawler', type='direct'), routing_key='home_newest_info'),
         Queue('ajax_home_crawler', exchange=Exchange('ajax_home_crawler', type='direct'), routing_key='ajax_home_info'),
 
         Queue('comment_crawler', exchange=Exchange('comment_crawler', type='direct'), routing_key='comment_info'),
