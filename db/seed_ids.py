@@ -65,7 +65,7 @@ def set_seed_other_crawled(uid):
     """
     seed = get_seed_by_id(uid)
     if seed is None:
-        seed = SeedIds(uid=uid, is_crawled=1, other_crawled=1, home_crawled=1, home_outdated=1)
+        seed = SeedIds(uid=uid, is_crawled=1, other_crawled=1, home_crawled=1)
         db_session.add(seed)
     else:
         seed.other_crawled = 1

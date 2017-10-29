@@ -62,7 +62,7 @@ def crawl_ajax_page_newest(url):
 def crawl_weibo_datas(uid):
     limit = get_max_home_page()
     cur_page = 1
-    outdated = 0
+    outdated = 1
     while cur_page <= limit:
         url = home_url.format(uid, cur_page)
         html = get_page(url)
