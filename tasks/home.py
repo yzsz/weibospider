@@ -42,6 +42,23 @@ def crawl_ajax_page(url):
 
 
 @app.task(ignore_result=True)
+def crawl_ajax_page_newest(url):
+    """
+    :param url: user home ajax url
+    :return: resp.text
+    """
+    ajax_html = get_page(url, user_verify=False)
+    ajax_wbdatas = get_home_wbdata_byajax(ajax_html)
+    if not ajax_wbdatas:
+        return ''
+
+    if get_wb_by_mid(ajax_wbdatas[0].weibo_id):
+        return
+    insert_weibo_datas(ajax_wbdatas)
+    return ajax_html
+
+
+@app.task(ignore_result=True)
 def crawl_weibo_datas(uid):
     limit = get_max_home_page()
     cur_page = 1
@@ -110,11 +127,11 @@ def crawl_weibo_datas_newest(uid):
             limit = total_page
 
         cur_page += 1
-        app.send_task('tasks.home.crawl_ajax_page', args=(ajax_url_0,), queue='ajax_home_crawler',
-                      routing_key='ajax_home_info')
+        app.send_task('tasks.home.crawl_ajax_page_newest', args=(ajax_url_0,), queue='ajax_home_newest_crawler',
+                      routing_key='ajax_home_newest_info')
 
-        app.send_task('tasks.home.crawl_ajax_page', args=(ajax_url_1,), queue='ajax_home_crawler',
-                      routing_key='ajax_home_info')
+        app.send_task('tasks.home.crawl_ajax_page_newest', args=(ajax_url_1,), queue='ajax_home_newest_crawler',
+                      routing_key='ajax_home_newest_info')
 
 
 @app.task

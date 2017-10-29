@@ -54,8 +54,13 @@ app.conf.update(
         },
         'home_task': {
             'task': 'tasks.home.excute_home_task',
-            'schedule': timedelta(hours=10),
+            'schedule': timedelta(hours=24),
             'options': {'queue': 'home_crawler', 'routing_key': 'home_info'}
+        },
+        'home_newest_task': {
+            'task': 'tasks.home.excute_home_newest_task',
+            'schedule': timedelta(hours=72),
+            'options': {'queue': 'home_newest_crawler', 'routing_key': 'home_newest_info'}
         },
         'comment_task': {
             'task': 'tasks.comment.excute_comment_task',
@@ -78,6 +83,7 @@ app.conf.update(
         Queue('home_crawler', exchange=Exchange('home_crawler', type='direct'), routing_key='home_info'),
         Queue('home_newest_crawler', exchange=Exchange('home_newest_crawler', type='direct'), routing_key='home_newest_info'),
         Queue('ajax_home_crawler', exchange=Exchange('ajax_home_crawler', type='direct'), routing_key='ajax_home_info'),
+        Queue('ajax_home_newest_crawler', exchange=Exchange('ajax_home_newest_crawler', type='direct'), routing_key='ajax_home_newest_info'),
 
         Queue('comment_crawler', exchange=Exchange('comment_crawler', type='direct'), routing_key='comment_info'),
         Queue('comment_page_crawler', exchange=Exchange('comment_page_crawler', type='direct'),
