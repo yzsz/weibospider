@@ -19,12 +19,20 @@ class KeyWords(Base):
     __table__ = keywords
 
 
+class KeyWordsTimerange(Base):
+    __table__ = keywords_timerange
+
+
 class WeiboData(Base):
     __table__ = weibo_data
 
 
 class KeywordsWbdata(Base):
     __table__ = keywords_wbdata
+
+
+class KeywordsTimerangeWbdata(Base):
+    __table__ = keywords_wbdata_timerange
 
 
 class WeiboComment(Base):

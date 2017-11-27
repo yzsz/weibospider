@@ -1,5 +1,5 @@
 # -*-coding:utf-8 -*-
-from sqlalchemy import Table, Column, INTEGER, String, Text, TIMESTAMP
+from sqlalchemy import Table, Column, INTEGER, String, Text, TIMESTAMP, DATE
 from db.basic_db import metadata
 
 # login table
@@ -50,6 +50,17 @@ keywords = Table('keywords', metadata,
                  Column("enable", INTEGER, default=1, server_default='1'),
                  )
 
+# search keywords with time ranges
+keywords_timerange = Table('keywords_timerange', metadata,
+                 Column("id", INTEGER, primary_key=True, autoincrement=True),
+                 Column("keyword", String(200), unique=True),
+                 Column("start_time", DATE),
+                 Column("start_hour", INTEGER),
+                 Column("end_time", DATE),
+                 Column("end_hour", INTEGER),
+                 Column("enable", INTEGER, default=1, server_default='1'),
+                 )
+
 # weibo info data
 weibo_data = Table('weibo_data', metadata,
                    Column("id", INTEGER, primary_key=True, autoincrement=True),
@@ -74,6 +85,13 @@ weibo_data = Table('weibo_data', metadata,
 keywords_wbdata = Table('keywords_wbdata', metadata,
                         Column("id", INTEGER, primary_key=True, autoincrement=True),
                         Column("keyword_id", INTEGER),
+                        Column("wb_id", String(200)),
+                        )
+
+# time-ranged keywords and weibodata relationship
+keywords_wbdata_timerange = Table('keywords_wbdata_timerange', metadata,
+                        Column("id", INTEGER, primary_key=True, autoincrement=True),
+                        Column("keyword_timerange_id", INTEGER),
                         Column("wb_id", String(200)),
                         )
 
@@ -109,5 +127,5 @@ user_relation = Table("user_relation", metadata,
                       Column('type', INTEGER),  # 1 stands for fans, 2 stands for follows
                       )
 
-__all__ = ['login_info', 'wbuser', 'seed_ids', 'keywords', 'weibo_data', 'keywords_wbdata', 'weibo_comment',
-           'weibo_repost', 'user_relation']
+__all__ = ['login_info', 'wbuser', 'seed_ids', 'keywords', 'keywords_timerange', 'weibo_data', 'keywords_wbdata',
+           'keywords_wbdata_timerange', 'weibo_comment', 'weibo_repost', 'user_relation']
