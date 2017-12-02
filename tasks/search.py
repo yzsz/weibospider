@@ -5,13 +5,14 @@ from tasks.workers import app
 from page_get.basic import get_page
 from config.conf import get_max_search_page
 from page_parse import search as parse_search
-from db.search_words import get_search_keywords
+from db.search_words import get_search_keywords, get_search_keywords_timerange
 from db.keywords_wbdata import insert_keyword_wbid
 from db.wb_data import insert_weibo_data, get_wb_by_mid
 
 # This url is just for original weibos.
 # If you want other kind of search, you can change the url below
 url = 'http://s.weibo.com/weibo/{}&scope=ori&suball=1&page={}'
+url_timerange = 'http://s.weibo.com/weibo/{}&scope=ori&suball=1&timescope=custom:{}:{}&page={}'
 limit = get_max_search_page() + 1
 
 
@@ -55,4 +56,14 @@ def excute_search_task():
     keywords = get_search_keywords()
     for each in keywords:
         app.send_task('tasks.search.search_keyword', args=(each[0], each[1]), queue='search_crawler',
+                      routing_key='for_search_info')
+
+
+@app.task(ignore_result=True)
+def excute_search_timerange_task():
+    keywords = get_search_keywords_timerange()
+    for each in keywords:
+        app.send_task('tasks.search.search_keyword_timerange',
+                      args=(each[0], each[1], each[2], each[3], each[4], each[5]),
+                      queue='search_crawler',
                       routing_key='for_search_info')
