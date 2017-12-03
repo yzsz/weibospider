@@ -78,6 +78,7 @@ app.conf.update(
 
         Queue('user_crawler', exchange=Exchange('user_crawler', type='direct'), routing_key='for_user_info'),
         Queue('search_crawler', exchange=Exchange('search_crawler', type='direct'), routing_key='for_search_info'),
+        Queue('search_timerange_crawler', exchange=Exchange('search_timerange_crawler', type='direct'), routing_key='for_search_timerange_info'),
         Queue('fans_followers', exchange=Exchange('fans_followers', type='direct'), routing_key='for_fans_followers'),
 
         Queue('home_crawler', exchange=Exchange('home_crawler', type='direct'), routing_key='home_info'),
