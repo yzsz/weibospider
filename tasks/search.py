@@ -9,11 +9,12 @@ from page_parse import search as parse_search
 from db.search_words import get_search_keywords, get_search_keywords_timerange
 from db.keywords_wbdata import insert_keyword_wbid, insert_keyword_timerange_wbid
 from db.wb_data import insert_weibo_data, get_wb_by_mid
+from config.provinces_reader import read_provinces
 
 # This url is just for original weibos.
 # If you want other kind of search, you can change the url below
 url = 'http://s.weibo.com/weibo/{}&scope=ori&suball=1&page={}'
-url_timerange = 'http://s.weibo.com/weibo/{}&scope=ori&suball=1&timescope=custom:{}:{}&page={}'
+url_timerange = 'http://s.weibo.com/weibo/{}&region=custom:{}&scope=ori&suball=1&timescope=custom:{}:{}&page={}'
 limit = get_max_search_page() + 1
 
 
@@ -53,38 +54,40 @@ def search_keyword(keyword, keyword_id):
 
 
 @app.task(ignore_result=True)
-def search_keyword_timerange(keyword, keyword_id, start_date, start_hour):
+def search_keyword_timerange(keyword, keyword_id, date, hour):
     cur_page = 1
     encode_keyword = url_parse.quote(keyword)
-    (end_date, end_hour) = (start_date + timedelta(days=1), 0) if start_hour == 23\
-        else (start_date, start_hour + 1)
+    provinces = read_provinces()
 
-    while cur_page < limit:
-        cur_url = url_timerange.format(encode_keyword, "%s-%i" % (start_date.isoformat(), start_hour),
-                                       "%s-%i" % (end_date.isoformat(), end_hour), cur_page)
+    for province_city_id in provinces:
+        while cur_page < limit:
+            cur_url = url_timerange.format(encode_keyword, province_city_id,
+                                           "%s-%i" % (date.isoformat(), hour),
+                                           "%s-%i" % (date.isoformat(), hour),
+                                           cur_page)
 
-        search_page = get_page(cur_url)
-        if not search_page:
-            crawler.warning('No result for keyword {}, the source page is {}'.format(keyword, search_page))
-            return
+            search_page = get_page(cur_url)
+            if not search_page:
+                crawler.warning('No result for keyword {}, the source page is {}'.format(keyword, search_page))
+                return
 
-        search_list = parse_search.get_search_info(search_page)
+            search_list = parse_search.get_search_info(search_page)
 
-        # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
-        for wb_data in search_list:
-            rs = get_wb_by_mid(wb_data.weibo_id)
-            if not rs:
-                insert_weibo_data(wb_data)
-            insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
-            # send task for crawling user info
-            app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
-                              routing_key='for_user_info')
+            # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
+            for wb_data in search_list:
+                rs = get_wb_by_mid(wb_data.weibo_id)
+                if not rs:
+                    insert_weibo_data(wb_data)
+                insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
+                # send task for crawling user info
+                app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
+                                  routing_key='for_user_info')
 
-        if 'page next S_txt1 S_line1' in search_page:
-            cur_page += 1
-        else:
-            crawler.info('keyword {} has been crawled in this turn'.format(keyword))
-            return
+            if 'page next S_txt1 S_line1' in search_page:
+                cur_page += 1
+            else:
+                crawler.info('keyword {} has been crawled in this turn'.format(keyword))
+                return
 
 
 @app.task(ignore_result=True)
