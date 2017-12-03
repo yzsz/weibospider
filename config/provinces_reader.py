@@ -16,3 +16,4 @@ def read_provinces():
                     city_id = city.get('id')
                     if city_id:
                         result.append('%s:%s' % (province_id, city_id))
+    return result

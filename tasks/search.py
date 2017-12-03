@@ -62,8 +62,8 @@ def search_keyword_timerange(keyword, keyword_id, date, hour):
     for province_city_id in provinces:
         while cur_page < limit:
             cur_url = url_timerange.format(encode_keyword, province_city_id,
-                                           "%s-%i" % (date.isoformat(), hour),
-                                           "%s-%i" % (date.isoformat(), hour),
+                                           "%s-%i" % (date, hour),
+                                           "%s-%i" % (date, hour),
                                            cur_page)
 
             search_page = get_page(cur_url)
@@ -107,7 +107,7 @@ def excute_search_timerange_task():
             for hour in range(each_timerange[3], each_timerange[5], 1):
                 app.send_task('tasks.search.search_keyword_timerange',
                               args=(each_timerange[0], each_timerange[1],
-                                    date_cur, hour),
+                                    date_cur.isoformat(), hour),
                               queue='search_timerange_crawler',
                               routing_key='for_search_timerange_info')
 
@@ -116,7 +116,7 @@ def excute_search_timerange_task():
             for hour in range(each_timerange[3], 24, 1):
                 app.send_task('tasks.search.search_keyword_timerange',
                               args=(each_timerange[0], each_timerange[1],
-                                    date_cur, hour),
+                                    date_cur.isoformat(), hour),
                               queue='search_timerange_crawler',
                               routing_key='for_search_timerange_info')
             date_cur += delta
@@ -125,7 +125,7 @@ def excute_search_timerange_task():
                 for hour in range(0, 24, 1):
                     app.send_task('tasks.search.search_keyword_timerange',
                                   args=(each_timerange[0], each_timerange[1],
-                                        date_cur, hour),
+                                        date_cur.isoformat(), hour),
                                   queue='search_timerange_crawler',
                                   routing_key='for_search_timerange_info')
                     date_cur += delta
@@ -133,6 +133,6 @@ def excute_search_timerange_task():
             for hour in range(0, each_timerange[5], 1):
                 app.send_task('tasks.search.search_keyword_timerange',
                               args=(each_timerange[0], each_timerange[1],
-                                    date_cur, hour),
+                                    date_cur.isoformat(), hour),
                               queue='search_timerange_crawler',
                               routing_key='for_search_timerange_info')
