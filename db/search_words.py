@@ -1,7 +1,7 @@
 # -*-coding:utf-8 -*-
 from sqlalchemy import text
 from db.basic_db import db_session
-from db.models import KeyWords, KeyWordsTimerange
+from db.models import KeyWords, KeyWordsTimerange, KeywordsTimerangeWbdata
 from decorators.decorator import db_commit_decorator
 
 
@@ -14,6 +14,10 @@ def get_search_keywords_timerange():
                             KeyWordsTimerange.start_date, KeyWordsTimerange.start_hour,
                             KeyWordsTimerange.end_date, KeyWordsTimerange.end_hour)\
         .filter(text('enable=1')).all()
+
+
+def get_searched_keyword_timerange_wbid(wbid):
+    return db_session.query(KeywordsTimerangeWbdata.id).filter(KeywordsTimerangeWbdata.wb_id == wbid).all()
 
 
 @db_commit_decorator
