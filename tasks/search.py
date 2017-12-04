@@ -69,6 +69,10 @@ def search_keyword_timerange(keyword, keyword_id, date, hour, province_city_id):
             crawler.warning('No result for keyword {}, the source page is {}'.format(keyword, search_page))
             return
 
+        if 'search_noresult' in search_page:
+            crawler.warning('No result for keyword {}, the source page is {}'.format(keyword, search_page))
+            return
+
         search_list = parse_search.get_search_info(search_page)
 
         # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
@@ -78,7 +82,7 @@ def search_keyword_timerange(keyword, keyword_id, date, hour, province_city_id):
             if not rs:
                 insert_weibo_data(wb_data)
             if not wid:
-                insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
+                insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id, province_city_id)
             # send task for crawling user info
             app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
                           routing_key='for_user_info')

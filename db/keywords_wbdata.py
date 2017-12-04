@@ -14,9 +14,10 @@ def insert_keyword_wbid(keyword_id, wbid):
 
 
 @db_commit_decorator
-def insert_keyword_timerange_wbid(keyword_timerange_id, wbid):
+def insert_keyword_timerange_wbid(keyword_timerange_id, wbid, city):
     keyword_wbdata_timerange = KeywordsTimerangeWbdata()
     keyword_wbdata_timerange.wb_id = wbid
     keyword_wbdata_timerange.keyword_timerange_id = keyword_timerange_id
+    keyword_wbdata_timerange.city = city
     db_session.add(keyword_wbdata_timerange)
     db_session.commit()

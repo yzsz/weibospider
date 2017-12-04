@@ -93,6 +93,7 @@ keywords_wbdata_timerange = Table('keywords_wbdata_timerange', metadata,
                         Column("id", INTEGER, primary_key=True, autoincrement=True),
                         Column("keyword_timerange_id", INTEGER),
                         Column("wb_id", String(200)),
+                        Column("city", String(50))
                         )
 
 # comment table
