@@ -66,11 +66,11 @@ def search_keyword_timerange(keyword, keyword_id, date, hour, province_city_id):
 
         search_page = get_page(cur_url)
         if not search_page:
-            crawler.warning('No result for keyword {}, the source page is {}'.format(keyword, search_page))
+            crawler.warning('No result for keyword {}, the source page url is {}'.format(keyword, cur_url))
             return
 
         if 'search_noresult' in search_page:
-            crawler.warning('No result for keyword {}, the source page is {}'.format(keyword, search_page))
+            crawler.warning('No result for keyword {}, the source page url is {}'.format(keyword, cur_url))
             return
 
         search_list = parse_search.get_search_info(search_page)
