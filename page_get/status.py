@@ -19,8 +19,12 @@ def get_cont_of_weibo(mid):
     if html:
         try:
             html = json.loads(html, encoding='utf-8').get('data').get('html')
-            location = re.search(r'.*<a  suda-uatrack.*title="(.+?)"', html).group(1).strip()
-            html = re.search(r'(.*)<a  suda-uatrack.*title=".+?"', html).group(1)
+            location_str = re.search(r'.*<a  suda-uatrack.*title="(.+?)"', html)
+            if location_str:
+                location = location_str.group(1).strip()
+                html = re.search(r'(.*)<a  suda-uatrack.*title=".+?"', html).group(1)
+            else:
+                location = ''
             cont = filters.text_filter(html)
         except AttributeError:
             location = ''

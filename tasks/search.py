@@ -78,7 +78,7 @@ def search_keyword_timerange(keyword, keyword_id, date, hour, province_city_id):
         # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
         for wb_data in search_list:
             rs = get_wb_by_mid(wb_data.weibo_id)
-            wid = get_searched_keyword_timerange_wbid(wb_data.weibo_id)
+            wid = get_searched_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             if not rs:
                 insert_weibo_data(wb_data)
             if not wid:
@@ -135,7 +135,7 @@ def excute_search_timerange_task():
                                             date_cur.isoformat(), hour, province_city_id),
                                       queue='search_timerange_crawler',
                                       routing_key='for_search_timerange_info')
-                        date_cur += delta
+                    date_cur += delta
 
                 for hour in range(0, each_timerange[5], 1):
                     app.send_task('tasks.search.search_keyword_timerange',

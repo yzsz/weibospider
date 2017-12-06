@@ -16,8 +16,10 @@ def get_search_keywords_timerange():
         .filter(text('enable=1')).all()
 
 
-def get_searched_keyword_timerange_wbid(wbid):
-    return db_session.query(KeywordsTimerangeWbdata.id).filter(KeywordsTimerangeWbdata.wb_id == wbid).all()
+def get_searched_keyword_timerange_wbid(keyword_id, wbid):
+    return db_session.query(KeywordsTimerangeWbdata.id)\
+        .filter(KeywordsTimerangeWbdata.keyword_timerange_id == keyword_id)\
+        .filter(KeywordsTimerangeWbdata.wb_id == wbid).all()
 
 
 @db_commit_decorator
