@@ -1,12 +1,12 @@
 import json
 from bs4 import BeautifulSoup
-from logger.log import parser
+
+from logger import parser
 from db.models import WeiboRepost
 from db.redis_db import IdNames
-from decorators.decorator import parse_decorator
+from decorators import parse_decorator
 
-
-repost_url = 'http://weibo.com{}'
+REPOST_URL = 'http://weibo.com{}'
 
 
 @parse_decorator('')
@@ -48,16 +48,16 @@ def get_repost_list(html, mid):
     for repost in reposts:
         wb_repost = WeiboRepost()
         try:
-            repost_cont = repost.find(attrs={'class': 'WB_text'}).find(attrs={'node-type': 'text'}).text.strip().\
+            repost_cont = repost.find(attrs={'class': 'WB_text'}).find(attrs={'node-type': 'text'}).text.strip(). \
                 split('//@')
             wb_repost.repost_cont = repost_cont[0].encode('gbk', 'ignore').decode('gbk', 'ignore')
             wb_repost.weibo_id = repost['mid']
             # TODO 将wb_repost.user_id加入待爬队列（seed_ids）
             wb_repost.user_id = repost.find(attrs={'class': 'WB_face W_fl'}).find('a').get('usercard')[3:]
-            wb_repost.user_name = repost.find(attrs={'class': 'list_con'}).find(attrs={'class': 'WB_text'}).find('a').\
+            wb_repost.user_name = repost.find(attrs={'class': 'list_con'}).find(attrs={'class': 'WB_text'}).find('a'). \
                 text
             wb_repost.repost_time = repost.find(attrs={'class': 'WB_from S_txt2'}).find('a').get('title')
-            wb_repost.weibo_url = repost_url.format(repost.find(attrs={'class': 'WB_from S_txt2'}).find('a').
+            wb_repost.weibo_url = REPOST_URL.format(repost.find(attrs={'class': 'WB_from S_txt2'}).find('a').
                                                     get('href'))
             parents = repost.find(attrs={'class': 'WB_text'}).find(attrs={'node-type': 'text'})
             wb_repost.root_weibo_id = mid

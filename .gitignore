@@ -1,10 +1,10 @@
 # Created by .ignore support plugin (hsz.mobi)
-celery.sh
+celery*.sh
+killall.sh
 .idea
 weibospider.iml
 __pycache__/
 logs
 celerybeat-schedule.db
 .env
-config/conf.yaml
-*.pyc
+config/spider.yaml.bak

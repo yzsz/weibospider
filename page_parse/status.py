@@ -1,10 +1,9 @@
-# -*-coding:utf-8 -*-
-# 微博详情页
 import re
 import json
 from bs4 import BeautifulSoup
-from decorators.decorator import parse_decorator
-from logger.log import parser
+
+from decorators import parse_decorator
+from logger import parser
 
 
 @parse_decorator('')
@@ -169,7 +168,9 @@ def get_rooturl(cururl, html):
             return ''
         soup = BeautifulSoup(cont, 'html.parser')
         try:
-            url = 'http://weibo.com'+soup.find(attrs={'node-type': 'feed_list_forwardContent'}).find(attrs={'class': 'WB_from'}).find(attrs={'class': 'S_txt2'})['href']
+            url = 'http://weibo.com' + \
+                  soup.find(attrs={'node-type': 'feed_list_forwardContent'}).find(attrs={'class': 'WB_from'}).find(
+                      attrs={'class': 'S_txt2'})['href']
         except TypeError:
             return ''
         except AttributeError:
@@ -193,7 +194,7 @@ def get_reposturls(repostinfo):
         soup = BeautifulSoup(repostinfo, 'html.parser')
         contents = soup.find_all(attrs={'node-type': 'feed_list_item_date'})
         for content in contents:
-            repost_urls.append(prestring+content['href'])
+            repost_urls.append(prestring + content['href'])
         return repost_urls
     except AttributeError:
         return []
