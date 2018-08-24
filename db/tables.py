@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Table, Column, INTEGER, String, Text, TIMESTAMP, DATE, DateTime, func)
+    Table, Column, INTEGER, String, Text, TIMESTAMP, DATE, DateTime, BOOLEAN, func)
 
 from .basic import metadata
 
@@ -153,6 +153,12 @@ weibo_dialogue = Table("weibo_dialogue", metadata,
                        Column("dialogue_cont", Text),
                        Column("dialogue_rounds", INTEGER),
                        )
+
+# home collections table
+home_collections = Table("home_collections", metadata,
+                         Column("id", INTEGER, primary_key=True, nullable=False),
+                         Column("description", String(200), nullable=False, default=''),
+                         Column("enabled", BOOLEAN, nullable=False, default=False))
 
 __all__ = ['login_info', 'wbuser', 'seed_ids', 'keywords', 'weibo_data', 'keywords_wbdata', 'weibo_comment',
            'weibo_repost', 'user_relation', 'weibo_dialogue', 'weibo_praise', 'keywords_timerange',
