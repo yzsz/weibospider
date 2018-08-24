@@ -33,7 +33,7 @@ class CommonOper:
 class LoginInfoOper:
     @classmethod
     def get_login_info(cls):
-        print("db_session hashkey: " + db_session.hash_key)
+        print("db_session hashkey: " + str(db_session.hash_key))
         return db_session.query(LoginInfo.name, LoginInfo.password, LoginInfo.enable). \
             filter(text('enable=1')).all()
 
