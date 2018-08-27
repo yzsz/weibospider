@@ -160,6 +160,18 @@ home_collections = Table("home_collections", metadata,
                          Column("description", String(200), nullable=False, default=''),
                          Column("enabled", BOOLEAN, nullable=False, default=False))
 
+# monitoring ids table
+home_ids = Table("home_ids", metadata,
+                 Column("uid", String(20), nullable=False),
+                 Column("home_collection_id", INTEGER, nullable=False),
+                 Column("last_mid", String(200), nullable=False),
+                 Column("last_updated", TIMESTAMP, nullable=False))
+
+# uid and weibodata relationship
+home_wbdata = Table("home_wbdata", metadata,
+                    Column("uid", String(20), nullable=False),
+                    Column("mid", String(200), nullable=False))
+
 __all__ = ['login_info', 'wbuser', 'seed_ids', 'keywords', 'weibo_data', 'keywords_wbdata', 'weibo_comment',
            'weibo_repost', 'user_relation', 'weibo_dialogue', 'weibo_praise', 'keywords_timerange',
            'keywords_wbdata_timerange']
