@@ -7,7 +7,8 @@ from .basic import db_session
 from .models import (
     LoginInfo, KeywordsWbdata, KeyWords, SeedIds, UserRelation,
     WeiboComment, WeiboRepost, User, WeiboData, WeiboPraise,
-    KeyWordsTimerange, KeywordsTimerangeWbdata
+    KeyWordsTimerange, KeywordsTimerangeWbdata, HomeCollections,
+    HomeIds, HomeWbdata
 )
 from decorators import db_commit_decorator
 
@@ -88,7 +89,7 @@ class KeywordsOper:
     def get_searched_keyword_timerange_wbid(cls, keyword_id, wbid):
         return db_session.query(KeywordsTimerangeWbdata.id) \
             .filter(KeywordsTimerangeWbdata.keyword_timerange_id == keyword_id) \
-            .filter(KeywordsTimerangeWbdata.wb_id == wbid).all()
+            .filter(KeywordsTimerangeWbdata.wb_id == wbid).first()
 
     @classmethod
     @db_commit_decorator
@@ -281,7 +282,7 @@ class CommentOper(CommonOper):
 
 class PraiseOper(CommonOper):
     @classmethod
-    def get_Praise_by_id(cls, pid):
+    def get_praise_by_id(cls, pid):
         return db_session.query(WeiboPraise).filter(WeiboPraise.weibo_id == pid).first()
 
 
@@ -289,3 +290,20 @@ class RepostOper(CommonOper):
     @classmethod
     def get_repost_by_rid(cls, rid):
         return db_session.query(WeiboRepost).filter(WeiboRepost.weibo_id == rid).first()
+
+
+class HomeOper(CommonOper):
+    @classmethod
+    def get_uids(cls):
+        return db_session.query(HomeIds.uid).join(HomeCollections). \
+            filter(HomeCollections.enabled is True). \
+            filter(HomeIds.home_collection_id == HomeCollections.id).all()
+
+    @classmethod
+    @db_commit_decorator
+    def insert_home_wbid(cls, uid, mid):
+        home_wbdata_single = HomeWbdata()
+        home_wbdata_single.uid = uid
+        home_wbdata_single.mid = mid
+        db_session.add(home_wbdata_single)
+        db_session.commit()

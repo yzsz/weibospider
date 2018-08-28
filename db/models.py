@@ -83,9 +83,20 @@ class UserRelation(Base):
                                                                               self.type, self.from_where)
 
 
-
 class WeiboDialogue(Base):
     __table__ = weibo_dialogue
 
     def __repr__(self):
         return 'weibo_id:{},dialogue_id:{},dialogue_cont:{}'.format(self.weibo_id, self.dialogue_id, self.dialogue_cont)
+
+
+class HomeCollections(Base):
+    __table__ = home_collections
+
+
+class HomeIds(Base):
+    __table__ = home_ids
+
+
+class HomeWbdata(Base):
+    __table__ = home_wbdata

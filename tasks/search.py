@@ -86,7 +86,7 @@ def search_keyword_timerange_all(keyword, keyword_id, date, hour):
             rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
             wid = KeywordsOper.get_searched_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             if not rs:
-                WbDataOper.add_all(wb_data)
+                WbDataOper.add_one(wb_data)
             if not wid:
                 KeywordsDataOper.insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             # send task for crawling user info
@@ -131,7 +131,7 @@ def search_keyword_timerange_city(keyword, keyword_id, date, hour, province_city
             rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
             wid = KeywordsOper.get_searched_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             if not rs:
-                WbDataOper.add_all(wb_data)
+                WbDataOper.add_one(wb_data)
             if not wid:
                 KeywordsDataOper.insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id, province_city_id)
             # send task for crawling user info
