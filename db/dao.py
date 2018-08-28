@@ -8,7 +8,7 @@ from .models import (
     LoginInfo, KeywordsWbdata, KeyWords, SeedIds, UserRelation,
     WeiboComment, WeiboRepost, User, WeiboData, WeiboPraise,
     KeyWordsTimerange, KeywordsTimerangeWbdata, HomeCollections,
-    HomeIds, HomeWbdata
+    HomeIds, HomeLast
 )
 from decorators import db_commit_decorator
 
@@ -35,8 +35,8 @@ class LoginInfoOper:
     @classmethod
     def get_login_info(cls):
         print("db_session hashkey: " + str(db_session.hash_key))
-        return db_session.query(LoginInfo.name, LoginInfo.password, LoginInfo.enable). \
-            filter(text('enable=1')).all()
+        return db_session.query(LoginInfo.name, LoginInfo.password, LoginInfo.enable) \
+            .filter(text('enable=1')).all()
 
     @classmethod
     @db_commit_decorator
@@ -292,18 +292,23 @@ class RepostOper(CommonOper):
         return db_session.query(WeiboRepost).filter(WeiboRepost.weibo_id == rid).first()
 
 
-class HomeOper(CommonOper):
+class HomeCollectionOper(CommonOper):
     @classmethod
     def get_uids(cls):
-        return db_session.query(HomeIds.uid).join(HomeCollections). \
-            filter(HomeCollections.enabled is True). \
-            filter(HomeIds.home_collection_id == HomeCollections.id).all()
+        return db_session.query(HomeIds.uid).join(HomeCollections) \
+            .filter(HomeCollections.enabled) \
+            .filter(HomeIds.home_collection_id == HomeCollections.id).all()
+
+    @classmethod
+    def get_last(cls, uid):
+        return db_session.query(HomeLast.last_mid, HomeLast.last_updated) \
+            .filter(HomeLast.uid == uid).first()
 
     @classmethod
     @db_commit_decorator
-    def insert_home_wbid(cls, uid, mid):
-        home_wbdata_single = HomeWbdata()
-        home_wbdata_single.uid = uid
-        home_wbdata_single.mid = mid
-        db_session.add(home_wbdata_single)
+    def set_last(cls, uid, last_mid, last_updated):
+        home_last = db_session.query(HomeLast) \
+            .filter(HomeLast.uid == uid).first()
+        home_last.last_mid = last_mid
+        home_last.last_updated = last_updated
         db_session.commit()

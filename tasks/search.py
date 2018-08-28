@@ -82,16 +82,18 @@ def search_keyword_timerange_all(keyword, keyword_id, date, hour):
         search_list = parse_search.get_search_info(search_page)
 
         # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
+        wb_data_list = []
         for wb_data in search_list:
             rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
             wid = KeywordsOper.get_searched_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             if not rs:
-                WbDataOper.add_one(wb_data)
+                wb_data_list.append(wb_data)
             if not wid:
                 KeywordsDataOper.insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             # send task for crawling user info
             app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
                           routing_key='for_user_info')
+        WbDataOper.add_all(wb_data_list)
 
         if 'page next S_txt1 S_line1' in search_page:
             cur_page += 1
@@ -127,16 +129,18 @@ def search_keyword_timerange_city(keyword, keyword_id, date, hour, province_city
         search_list = parse_search.get_search_info(search_page)
 
         # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
+        wb_data_list = []
         for wb_data in search_list:
             rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
             wid = KeywordsOper.get_searched_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             if not rs:
-                WbDataOper.add_one(wb_data)
+                wb_data_list.append(wb_data)
             if not wid:
                 KeywordsDataOper.insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id, province_city_id)
             # send task for crawling user info
             app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
                           routing_key='for_user_info')
+        WbDataOper.add_all(wb_data_list)
 
         if 'page next S_txt1 S_line1' in search_page:
             cur_page += 1

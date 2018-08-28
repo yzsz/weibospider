@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Table, Column, INTEGER, String, Text, TIMESTAMP, DATE, DateTime, BOOLEAN, func)
+    Table, Column, INTEGER, String, Text, TIMESTAMP, DATE, DateTime, Boolean, func)
 
 from .basic import metadata
 
@@ -158,20 +158,19 @@ weibo_dialogue = Table("weibo_dialogue", metadata,
 home_collections = Table("home_collections", metadata,
                          Column("id", INTEGER, primary_key=True, nullable=False),
                          Column("description", String(200), nullable=False, default=''),
-                         Column("enabled", BOOLEAN, nullable=False, default=False))
+                         Column("enabled", Boolean, nullable=False, default=False))
 
 # monitoring ids table
 home_ids = Table("home_ids", metadata,
                  Column("uid", String(20), nullable=False),
-                 Column("home_collection_id", INTEGER, nullable=False),
-                 Column("last_mid", String(200), nullable=False),
-                 Column("last_updated", TIMESTAMP, nullable=False))
+                 Column("home_collection_id", INTEGER, nullable=False))
 
-# uid and weibodata relationship
-home_wbdata = Table("home_wbdata", metadata,
-                    Column("uid", String(20), nullable=False),
-                    Column("mid", String(200), nullable=False))
+# last crawled mids table
+home_last = Table("home_last", metadata,
+                  Column("uid", String(20), nullable=False),
+                  Column("last_mid", String(200), nullable=False),
+                  Column("last_updated", TIMESTAMP, nullable=False))
 
 __all__ = ['login_info', 'wbuser', 'seed_ids', 'keywords', 'weibo_data', 'keywords_wbdata', 'weibo_comment',
            'weibo_repost', 'user_relation', 'weibo_dialogue', 'weibo_praise', 'keywords_timerange',
-           'keywords_wbdata_timerange', 'home_collections', 'home_ids', 'home_wbdata']
+           'keywords_wbdata_timerange', 'home_collections', 'home_ids', 'home_last']

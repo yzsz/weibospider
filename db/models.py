@@ -98,5 +98,5 @@ class HomeIds(Base):
     __table__ = home_ids
 
 
-class HomeWbdata(Base):
-    __table__ = home_wbdata
+class HomeLast(Base):
+    __table__ = home_last

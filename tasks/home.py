@@ -1,18 +1,19 @@
 import time
-import datetime
+from datetime import datetime
 
 from logger import crawler
 from .workers import app
 from page_parse.user import public
 from page_get import get_page
 from config import (get_max_home_page, get_time_after, get_outdated_days)
-from db.dao import (WbDataOper, SeedidsOper)
+from db.dao import (WbDataOper, SeedidsOper, HomeCollectionOper)
 from page_parse.home import (get_data, get_ajax_data, get_total_page)
 
 # only crawls origin weibo
 HOME_URL = 'http://weibo.com/u/{}?is_ori=1&is_tag=0&profile_ftype=1&page={}'
 AJAX_URL = 'http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain={}&pagebar={}&is_ori=1&id={}{}&page={}' \
            '&pre_page={}&__rnd={}'
+timeafter = datetime.strptime(get_time_after(), '%Y-%m-%d %H:%M:%S')
 
 
 @app.task(ignore_result=True)
@@ -23,18 +24,17 @@ def crawl_ajax_page(url, auth_level):
     :return: resp.text
     """
     ajax_html = get_page(url, auth_level, is_ajax=True)
-    ajax_wbdatas = get_ajax_data(ajax_html)
-    if not ajax_wbdatas:
+    ajax_wbdata = get_ajax_data(ajax_html)
+    if not ajax_wbdata:
         return ''
 
-    timeafter = time.mktime(time.strptime(get_time_after(), '%Y-%m-%d %H:%M:%S'))
-    for i in range(0, len(ajax_wbdatas)):
-        weibo_time = time.mktime(time.strptime(ajax_wbdatas[i].create_time, '%Y-%m-%d %H:%M'))
+    for i in range(0, len(ajax_wbdata)):
+        weibo_time = ajax_wbdata[i].create_time
         if weibo_time < timeafter:
-            ajax_wbdatas = ajax_wbdatas[0:i]
+            ajax_wbdata = ajax_wbdata[0:i]
             break
 
-    WbDataOper.add_all(ajax_wbdatas)
+    WbDataOper.add_all(ajax_wbdata)
     return ajax_html
 
 
@@ -46,20 +46,43 @@ def crawl_ajax_page_newest(url, auth_level):
     :return: resp.text
     """
     ajax_html = get_page(url, auth_level, is_ajax=True)
-    ajax_wbdatas = get_ajax_data(ajax_html)
-    if not ajax_wbdatas:
+    ajax_wbdata = get_ajax_data(ajax_html)
+    if not ajax_wbdata:
         return ''
 
-    timeafter = time.mktime(time.strptime(get_time_after(), '%Y-%m-%d %H:%M:%S'))
-    for i in range(0, len(ajax_wbdatas)):
-        weibo_time = time.mktime(time.strptime(ajax_wbdatas[i].create_time, '%Y-%m-%d %H:%M'))
+    for i in range(0, len(ajax_wbdata)):
+        weibo_time = ajax_wbdata[i].create_time
         if weibo_time < timeafter:
-            ajax_wbdatas = ajax_wbdatas[0:i]
+            ajax_wbdata = ajax_wbdata[0:i]
             break
 
-    if WbDataOper.get_wb_by_mid(ajax_wbdatas[0].weibo_id):
+    if WbDataOper.get_wb_by_mid(ajax_wbdata[0].weibo_id):
         return
-    WbDataOper.add_all(ajax_wbdatas)
+    WbDataOper.add_all(ajax_wbdata)
+    return ajax_html
+
+
+@app.task(ignore_result=True)
+def crawl_ajax_page_collection(url, auth_level, last_mid, last_updated):
+    """
+    :param url: user home ajax url
+    :param auth_level: 1 stands for no login but need fake cookies, 2 stands for login
+    :param last_mid: mid of user's last weibo in previous crawling
+    :param last_updated: create_time of user's last weibo in previous crawling
+    :return: resp.text, whether time limit or last_mid reached
+    """
+    ajax_html = get_page(url, auth_level, is_ajax=True)
+    ajax_wbdata = get_ajax_data(ajax_html)
+    if not ajax_wbdata:
+        return ''
+
+    for i in range(0, len(ajax_wbdata)):
+        weibo_time = ajax_wbdata[i].create_time
+        if weibo_time < timeafter or last_mid == ajax_wbdata[i].weibo_id or last_updated > ajax_wbdata[i].create_time:
+            ajax_wbdata = ajax_wbdata[0:i]
+            break
+    if ajax_wbdata:
+        WbDataOper.add_all(ajax_wbdata)
     return ajax_html
 
 
@@ -74,26 +97,23 @@ def crawl_weibo_datas(uid):
             html = get_page(url, auth_level=1)
         else:
             html = get_page(url, auth_level=2)
-        weibo_datas = get_data(html)
+        weibo_data = get_data(html)
 
-        if not weibo_datas:
+        if not weibo_data:
             crawler.warning("user {} has no weibo".format(uid))
             return
 
         # Check whether weibo created after time in spider.yaml
-        timeafter = time.mktime(
-            time.strptime(get_time_after(), '%Y-%m-%d %H:%M:%S'))
-        length_weibo_datas = len(weibo_datas)
-        for i in range(0, len(weibo_datas)):
-            weibo_time = time.mktime(
-                time.strptime(weibo_datas[i].create_time, '%Y-%m-%d %H:%M'))
+        length_weibo_data = len(weibo_data)
+        for i in range(0, len(weibo_data)):
+            weibo_time = weibo_data[i].create_time
             if weibo_time < timeafter:
-                weibo_datas = weibo_datas[0:i]
+                weibo_data = weibo_data[0:i]
                 break
 
-        WbDataOper.add_all(weibo_datas)
+        WbDataOper.add_all(weibo_data)
         # If the weibo isn't created after the given time, jump out the loop
-        if i != length_weibo_datas - 1:
+        if i != length_weibo_data - 1:
             break
 
         domain = public.get_userdomain(html)
@@ -102,21 +122,22 @@ def crawl_weibo_datas(uid):
         ajax_url_1 = AJAX_URL.format(domain, 1, domain, uid, cur_page, cur_page, cur_time + 100)
 
         if cur_page == 1:
-            if (datetime.datetime.now() - weibo_datas[0].create_time).days < get_outdated_days():
+            if (datetime.now() - weibo_data[0].create_time).days < get_outdated_days():
                 outdated = 0
             # here we use local call to get total page number
-            total_page = get_total_page(crawl_ajax_page(ajax_url_1, 2))
+            limit = min(limit, get_total_page(crawl_ajax_page(ajax_url_1, 2)))
             auth_level = 1
         else:
             auth_level = 2
 
-        if total_page < limit:
-            limit = total_page
-
-        app.send_task('tasks.home.crawl_ajax_page', args=(ajax_url_0, auth_level), queue='ajax_home_crawler',
+        app.send_task('tasks.home.crawl_ajax_page',
+                      args=(ajax_url_0, auth_level),
+                      queue='ajax_home_crawler',
                       routing_key='ajax_home_info')
 
-        app.send_task('tasks.home.crawl_ajax_page', args=(ajax_url_1, auth_level), queue='ajax_home_crawler',
+        app.send_task('tasks.home.crawl_ajax_page',
+                      args=(ajax_url_1, auth_level),
+                      queue='ajax_home_crawler',
                       routing_key='ajax_home_info')
         cur_page += 1
 
@@ -133,28 +154,25 @@ def crawl_weibo_datas_newest(uid):
             html = get_page(url, auth_level=1)
         else:
             html = get_page(url, auth_level=2)
-        weibo_datas = get_data(html)
+        weibo_data = get_data(html)
 
-        if not weibo_datas:
+        if not weibo_data:
             crawler.warning("user {} has no weibo".format(uid))
             return
-        if WbDataOper.get_wb_by_mid(weibo_datas[0].weibo_id):
+        if WbDataOper.get_wb_by_mid(weibo_data[0].weibo_id):
             return
 
         # Check whether weibo created after time in spider.yaml
-        timeafter = time.mktime(
-            time.strptime(get_time_after(), '%Y-%m-%d %H:%M:%S'))
-        length_weibo_datas = len(weibo_datas)
-        for i in range(0, len(weibo_datas)):
-            weibo_time = time.mktime(
-                time.strptime(weibo_datas[i].create_time, '%Y-%m-%d %H:%M'))
+        length_weibo_data = len(weibo_data)
+        for i in range(0, len(weibo_data)):
+            weibo_time = weibo_data[i].create_time
             if weibo_time < timeafter:
-                weibo_datas = weibo_datas[0:i]
+                weibo_data = weibo_data[0:i]
                 break
 
-        WbDataOper.add_all(weibo_datas)
+        WbDataOper.add_all(weibo_data)
         # If the weibo isn't created after the given time, jump out the loop
-        if i != length_weibo_datas - 1:
+        if i != length_weibo_data - 1:
             break
 
         domain = public.get_userdomain(html)
@@ -164,18 +182,73 @@ def crawl_weibo_datas_newest(uid):
 
         if cur_page == 1:
             # here we use local call to get total page number
-            total_page = get_total_page(crawl_ajax_page(ajax_url_1, 2))
-            auth_level = 2
-        else:
+            limit = min(limit, get_total_page(crawl_ajax_page(ajax_url_1, 2)))
             auth_level = 1
+        else:
+            auth_level = 2
 
-        if total_page < limit:
-            limit = total_page
-
-        app.send_task('tasks.home.crawl_ajax_page_newest', args=(ajax_url_0, auth_level),
+        app.send_task('tasks.home.crawl_ajax_page_newest',
+                      args=(ajax_url_0, auth_level),
                       queue='ajax_home_newest_crawler',
                       routing_key='ajax_home_newest_info')
-        app.send_task('tasks.home.crawl_ajax_page_newest', args=(ajax_url_1, auth_level),
+        app.send_task('tasks.home.crawl_ajax_page_newest',
+                      args=(ajax_url_1, auth_level),
+                      queue='ajax_home_newest_crawler',
+                      routing_key='ajax_home_newest_info')
+        cur_page += 1
+
+
+@app.task(ignore_result=True)
+def crawl_weibo_data_collection(uid):
+    limit = get_max_home_page()
+    cur_page = 1
+    last_mid, last_updated = HomeCollectionOper.get_last(uid)
+
+    while cur_page <= limit:
+        url = HOME_URL.format(uid, cur_page)
+        if cur_page == 1:
+            html = get_page(url, auth_level=1)
+        else:
+            html = get_page(url, auth_level=2)
+        weibo_data = get_data(html)
+
+        if not weibo_data:
+            crawler.warning("user {} has no weibo".format(uid))
+            return
+
+        # TODO use redis here
+        length_weibo_data = len(weibo_data)
+        for i in range(0, len(weibo_data)):
+            weibo_time = weibo_data[i].create_time
+            if weibo_time < timeafter or last_mid == weibo_data[i].weibo_id or last_updated > weibo_data[i].create_time:
+                weibo_data = weibo_data[0:i]
+                break
+
+        WbDataOper.add_all(weibo_data)
+        if cur_page == 1:
+            HomeCollectionOper.set_last(uid, weibo_data[0].weibo_id)
+        # If the weibo isn't created after the given time, jump out the loop
+        if i != length_weibo_data - 1:
+            break
+
+        domain = public.get_userdomain(html)
+        cur_time = int(time.time() * 1000)
+        ajax_url_0 = AJAX_URL.format(domain, 0, domain, uid, cur_page, cur_page, cur_time)
+        ajax_url_1 = AJAX_URL.format(domain, 1, domain, uid, cur_page, cur_page, cur_time + 100)
+
+        if cur_page == 1:
+            # here we use local call to get total page number
+            limit = min(limit, get_total_page(crawl_ajax_page(ajax_url_1, 2)))
+            auth_level = 1
+        else:
+            auth_level = 2
+
+        app.send_task('tasks.home.crawl_ajax_page_collection',
+                      args=(ajax_url_0, auth_level, last_mid, last_updated),
+                      queue='ajax_home_newest_crawler',
+                      routing_key='ajax_home_newest_info')
+        app.send_task('tasks.home.crawl_ajax_page_collection',
+                      args=(ajax_url_1, auth_level, last_mid, last_updated),
                       queue='ajax_home_newest_crawler',
                       routing_key='ajax_home_newest_info')
         cur_page += 1
