@@ -23,6 +23,7 @@ urls_db = REDIS_ARGS.get('urls', 2)
 broker_db = REDIS_ARGS.get('broker', 5)
 backend_db = REDIS_ARGS.get('backend', 6)
 id_name_db = REDIS_ARGS.get('id_name', 8)
+home_lasts_db = REDIS_ARGS.get('home_lasts', 11)
 cookie_expire_time = get_cookie_expire_time()
 data_expire_time = REDIS_ARGS.get('expire_time') * 60 * 60
 
@@ -37,6 +38,7 @@ if sentinel_args:
     broker_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=broker_db)
     urls_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=urls_db)
     id_name_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=id_name_db)
+    home_lasts_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=home_lasts_db)
 else:
     host = REDIS_ARGS.get('host', '127.0.0.1')
     port = REDIS_ARGS.get('port', 6379)
@@ -44,6 +46,7 @@ else:
     broker_con = redis.Redis(host=host, port=port, password=password, db=broker_db)
     urls_con = redis.Redis(host=host, port=port, password=password, db=urls_db)
     id_name_con = redis.Redis(host=host, port=port, password=password, db=id_name_db)
+    home_lasts_con = redis.Redis(host=host, port=port, password=password, db=home_lasts_db)
 
 
 class Cookies(object):
@@ -190,3 +193,18 @@ class IdNames(object):
         if user_id:
             return user_id.decode('utf-8')
         return ''
+
+
+class HomeLasts(object):
+    @classmethod
+    def set_lasts(cls, uid, last_mid, last_updated):
+        last_updated = last_updated.strftime('%Y-%m-%d %H:%M')
+        home_lasts_con.hset('last_mid', uid, last_mid)
+        home_lasts_con.hset('last_updated', uid, last_updated)
+
+    @classmethod
+    def get_lasts(cls, uid):
+        last_mid = home_lasts_con.hget('last_mid', uid)
+        last_updated = home_lasts_con.hget('last_updated', uid)
+        last_updated = datetime.datetime.strptime(last_updated, '%Y-%m-%d %H:%M')
+        return last_mid, last_updated

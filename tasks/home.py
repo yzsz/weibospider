@@ -7,6 +7,7 @@ from page_parse.user import public
 from page_get import get_page
 from config import (get_max_home_page, get_time_after, get_outdated_days)
 from db.dao import (WbDataOper, SeedidsOper, HomeCollectionOper)
+from db.redis_db import HomeLasts
 from page_parse.home import (get_data, get_ajax_data, get_total_page)
 
 # only crawls origin weibo
@@ -202,7 +203,9 @@ def crawl_weibo_datas_newest(uid):
 def crawl_weibo_data_collection(uid):
     limit = get_max_home_page()
     cur_page = 1
-    last_mid, last_updated = HomeCollectionOper.get_last(uid)
+    last_mid, last_updated = HomeLasts.get_lasts(uid)
+    if not last_mid or not last_updated:
+        last_mid, last_updated = HomeCollectionOper.get_last(uid)
 
     while cur_page <= limit:
         url = HOME_URL.format(uid, cur_page)
@@ -224,6 +227,8 @@ def crawl_weibo_data_collection(uid):
                 weibo_data = weibo_data[0:i]
                 break
 
+        if weibo_data:
+            HomeLasts.set_lasts(uid, weibo_data[0].weibo_id, weibo_data[0].create_time)
         WbDataOper.add_all(weibo_data)
         if cur_page == 1:
             HomeCollectionOper.set_last(uid, weibo_data[0].weibo_id)

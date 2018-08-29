@@ -93,6 +93,7 @@ redis:
       port: 26380
     master: mymaster             # redis sentinel master name
     socket_timeout: 5               # sockt timeout for redis sentinel
+    home_lasts: 11
 
 
 # warning by email
