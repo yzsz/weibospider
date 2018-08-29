@@ -250,12 +250,12 @@ def crawl_weibo_data_collection(uid):
 
         app.send_task('tasks.home.crawl_ajax_page_collection',
                       args=(ajax_url_0, auth_level, last_mid, last_updated),
-                      queue='ajax_home_newest_crawler',
-                      routing_key='ajax_home_newest_info')
+                      queue='ajax_home_collection_crawler',
+                      routing_key='ajax_home_collection_info')
         app.send_task('tasks.home.crawl_ajax_page_collection',
                       args=(ajax_url_1, auth_level, last_mid, last_updated),
-                      queue='ajax_home_newest_crawler',
-                      routing_key='ajax_home_newest_info')
+                      queue='ajax_home_collection_crawler',
+                      routing_key='ajax_home_collection_info')
         cur_page += 1
 
 
@@ -277,3 +277,11 @@ def execute_home_newest_task():
     for id_obj in id_objs:
         app.send_task('tasks.home.crawl_weibo_datas_newest', args=(id_obj.uid,), queue='home_newest_crawler',
                       routing_key='home_newest_info')
+
+
+@app.task
+def execute_home_collection_task():
+    uids = HomeCollectionOper.get_uids()
+    for uid in uids:
+        app.send_task('tasks.home.crawl_weibo_data_collection', args=(uid,), queue='home_collection_crawler',
+                      routing_key='home_collection_info')
