@@ -162,8 +162,8 @@ home_collections = Table("home_collections", metadata,
 
 # monitoring ids table
 home_ids = Table("home_ids", metadata,
-                 Column("uid", String(20), nullable=False),
-                 Column("home_collection_id", INTEGER, nullable=False))
+                 Column("home_collection_id", INTEGER, nullable=False),
+                 Column("uid", String(20), nullable=False))
 
 # last crawled mids table
 home_last = Table("home_last", metadata,
