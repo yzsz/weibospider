@@ -96,7 +96,3 @@ class HomeCollections(Base):
 
 class HomeIds(Base):
     __table__ = home_ids
-
-
-class HomeLast(Base):
-    __table__ = home_last

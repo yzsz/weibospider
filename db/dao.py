@@ -8,7 +8,7 @@ from .models import (
     LoginInfo, KeywordsWbdata, KeyWords, SeedIds, UserRelation,
     WeiboComment, WeiboRepost, User, WeiboData, WeiboPraise,
     KeyWordsTimerange, KeywordsTimerangeWbdata, HomeCollections,
-    HomeIds, HomeLast
+    HomeIds
 )
 from decorators import db_commit_decorator
 
@@ -22,12 +22,12 @@ class CommonOper:
 
     @classmethod
     @db_commit_decorator
-    def add_all(cls, datas):
+    def add_all(cls, data_all):
         try:
-            db_session.add_all(datas)
+            db_session.add_all(data_all)
             db_session.commit()
         except (SqlalchemyIntegrityError, PymysqlIntegrityError, InvalidRequestError):
-            for data in datas:
+            for data in data_all:
                 cls.add_one(data)
 
 
@@ -70,6 +70,30 @@ class KeywordsDataOper:
         keyword_wbdata_timerange.city = city
         db_session.add(keyword_wbdata_timerange)
         db_session.commit()
+
+    @classmethod
+    @db_commit_decorator
+    def insert_keyword_timerange_wbid_list(cls, input_list):
+        keyword_wbdata_timerange_list = [cls.__create_keyword_wbdata_timerange(item) for item in input_list]
+        db_session.add_all(keyword_wbdata_timerange_list)
+        db_session.commit()
+
+    @classmethod
+    def __create_keyword_wbdata_timerange(cls, item):
+        keyword_wbdata_timerange = KeywordsTimerangeWbdata()
+        keyword_wbdata_timerange.wb_id = item[0]
+        keyword_wbdata_timerange.keyword_timerange_id = item[1]
+        if len(item) >= 3:
+            keyword_wbdata_timerange.city = item[2]
+        else:
+            keyword_wbdata_timerange.city = ''
+
+    @classmethod
+    def get_keyword_last(cls, keyword_id):
+        return db_session.query(WeiboData.weibo_id, WeiboData.create_time.desc()) \
+            .join(KeywordsWbdata).on(WeiboData.weibo_id == KeywordsWbdata.wb_id) \
+            .join(KeyWords).on(KeywordsWbdata.keyword_id == KeyWords.id) \
+            .filter(KeyWords.id == keyword_id).first()
 
 
 class KeywordsOper:
@@ -300,15 +324,6 @@ class HomeCollectionOper(CommonOper):
             .filter(HomeIds.home_collection_id == HomeCollections.id).all()
 
     @classmethod
-    def get_last(cls, uid):
-        return db_session.query(HomeLast.last_mid, HomeLast.last_updated) \
-            .filter(HomeLast.uid == uid).first()
-
-    @classmethod
-    @db_commit_decorator
-    def set_last(cls, uid, last_mid, last_updated):
-        home_last = db_session.query(HomeLast) \
-            .filter(HomeLast.uid == uid).first()
-        home_last.last_mid = last_mid
-        home_last.last_updated = last_updated
-        db_session.commit()
+    def get_home_last(cls, uid):
+        return db_session.query(WeiboData.weibo_id, WeiboData.create_time.desc()) \
+            .filter(WeiboData.uid == uid).first()

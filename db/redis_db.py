@@ -23,7 +23,7 @@ urls_db = REDIS_ARGS.get('urls', 2)
 broker_db = REDIS_ARGS.get('broker', 5)
 backend_db = REDIS_ARGS.get('backend', 6)
 id_name_db = REDIS_ARGS.get('id_name', 8)
-home_lasts_db = REDIS_ARGS.get('home_lasts', 11)
+last_cache_db = REDIS_ARGS.get('last_cache', 11)
 cookie_expire_time = get_cookie_expire_time()
 data_expire_time = REDIS_ARGS.get('expire_time') * 60 * 60
 
@@ -38,7 +38,7 @@ if sentinel_args:
     broker_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=broker_db)
     urls_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=urls_db)
     id_name_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=id_name_db)
-    home_lasts_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=home_lasts_db)
+    last_cache_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=last_cache_db)
 else:
     host = REDIS_ARGS.get('host', '127.0.0.1')
     port = REDIS_ARGS.get('port', 6379)
@@ -46,7 +46,7 @@ else:
     broker_con = redis.Redis(host=host, port=port, password=password, db=broker_db)
     urls_con = redis.Redis(host=host, port=port, password=password, db=urls_db)
     id_name_con = redis.Redis(host=host, port=port, password=password, db=id_name_db)
-    home_lasts_con = redis.Redis(host=host, port=port, password=password, db=home_lasts_db)
+    last_cache_con = redis.Redis(host=host, port=port, password=password, db=last_cache_db)
 
 
 class Cookies(object):
@@ -195,16 +195,32 @@ class IdNames(object):
         return ''
 
 
-class HomeLasts(object):
+class LastCache(object):
     @classmethod
-    def set_lasts(cls, uid, last_mid, last_updated):
-        last_updated = last_updated.strftime('%Y-%m-%d %H:%M')
-        home_lasts_con.hset('last_mid', uid, last_mid)
-        home_lasts_con.hset('last_updated', uid, last_updated)
+    def set_home_last(cls, uid, last_mid, last_updated):
+        cls.__set_last('home', uid, last_mid, last_updated)
 
     @classmethod
-    def get_lasts(cls, uid):
-        last_mid = home_lasts_con.hget('last_mid', uid)
-        last_updated = home_lasts_con.hget('last_updated', uid)
+    def get_home_last(cls, uid):
+        return cls.__get_last('home', uid)
+
+    @classmethod
+    def set_search_last(cls, keyword, last_mid, last_updated):
+        cls.__set_last('search', keyword, last_mid, last_updated)
+
+    @classmethod
+    def get_search_last(cls, keyword):
+        return cls.__get_last('search', keyword)
+
+    @classmethod
+    def __set_last(cls, name_prefix, key, last_mid, last_updated):
+        last_updated = last_updated.strftime('%Y-%m-%d %H:%M')
+        last_cache_con.hset(name_prefix + 'last_mid', key, last_mid)
+        last_cache_con.hset(name_prefix + 'last_updated', key, last_updated)
+
+    @classmethod
+    def __get_last(cls, name_prefix, key):
+        last_mid = last_cache_con.hget(name_prefix + 'last_mid', key)
+        last_updated = last_cache_con.hget(name_prefix + 'last_updated', key)
         last_updated = datetime.datetime.strptime(last_updated, '%Y-%m-%d %H:%M')
         return last_mid, last_updated

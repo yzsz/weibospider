@@ -7,7 +7,7 @@ from page_parse.user import public
 from page_get import get_page
 from config import (get_max_home_page, get_time_after, get_outdated_days)
 from db.dao import (WbDataOper, SeedidsOper, HomeCollectionOper)
-from db.redis_db import HomeLasts
+from db.redis_db import LastCache
 from page_parse.home import (get_data, get_ajax_data, get_total_page)
 
 # only crawls origin weibo
@@ -79,7 +79,9 @@ def crawl_ajax_page_collection(url, auth_level, last_mid, last_updated):
 
     for i in range(0, len(ajax_wbdata)):
         weibo_time = ajax_wbdata[i].create_time
-        if weibo_time < timeafter or last_mid == ajax_wbdata[i].weibo_id or last_updated > ajax_wbdata[i].create_time:
+        if weibo_time < timeafter \
+                or last_mid and last_mid == ajax_wbdata[i].weibo_id \
+                or last_updated and last_updated > ajax_wbdata[i].create_time:
             ajax_wbdata = ajax_wbdata[0:i]
             break
     if ajax_wbdata:
@@ -88,7 +90,7 @@ def crawl_ajax_page_collection(url, auth_level, last_mid, last_updated):
 
 
 @app.task(ignore_result=True)
-def crawl_weibo_datas(uid):
+def crawl_weibo_data(uid):
     limit = get_max_home_page()
     cur_page = 1
     outdated = 1
@@ -146,7 +148,7 @@ def crawl_weibo_datas(uid):
 
 
 @app.task(ignore_result=True)
-def crawl_weibo_datas_newest(uid):
+def crawl_weibo_data_newest(uid):
     limit = get_max_home_page()
     cur_page = 1
     while cur_page <= limit:
@@ -203,9 +205,9 @@ def crawl_weibo_datas_newest(uid):
 def crawl_weibo_data_collection(uid):
     limit = get_max_home_page()
     cur_page = 1
-    last_mid, last_updated = HomeLasts.get_lasts(uid)
+    last_mid, last_updated = LastCache.get_home_last(uid)
     if not last_mid or not last_updated:
-        last_mid, last_updated = HomeCollectionOper.get_last(uid)
+        last_mid, last_updated = HomeCollectionOper.get_home_last(uid)
 
     while cur_page <= limit:
         url = HOME_URL.format(uid, cur_page)
@@ -219,19 +221,18 @@ def crawl_weibo_data_collection(uid):
             crawler.warning("user {} has no weibo".format(uid))
             return
 
-        # TODO use redis here
         length_weibo_data = len(weibo_data)
         for i in range(0, len(weibo_data)):
             weibo_time = weibo_data[i].create_time
-            if weibo_time < timeafter or last_mid == weibo_data[i].weibo_id or last_updated > weibo_data[i].create_time:
+            if weibo_time < timeafter \
+                    or last_mid and last_mid == weibo_data[i].weibo_id \
+                    or last_updated and last_updated > weibo_data[i].create_time:
                 weibo_data = weibo_data[0:i]
                 break
 
-        if weibo_data:
-            HomeLasts.set_lasts(uid, weibo_data[0].weibo_id, weibo_data[0].create_time)
         WbDataOper.add_all(weibo_data)
-        if cur_page == 1:
-            HomeCollectionOper.set_last(uid, weibo_data[0].weibo_id)
+        if weibo_data and cur_page == 1:
+            LastCache.set_home_last(uid, weibo_data[0].weibo_id, weibo_data[0].create_time)
         # If the weibo isn't created after the given time, jump out the loop
         if i != length_weibo_data - 1:
             break
@@ -265,7 +266,7 @@ def execute_home_task():
     # whose home_crawl is 0
     id_objs = SeedidsOper.get_home_ids()
     for id_obj in id_objs:
-        app.send_task('tasks.home.crawl_weibo_datas', args=(id_obj.uid,), queue='home_crawler',
+        app.send_task('tasks.home.crawl_weibo_data', args=(id_obj.uid,), queue='home_crawler',
                       routing_key='home_info')
 
 
@@ -275,7 +276,7 @@ def execute_home_newest_task():
     # whose home_crawl is 0
     id_objs = SeedidsOper.get_home_ids_active()
     for id_obj in id_objs:
-        app.send_task('tasks.home.crawl_weibo_datas_newest', args=(id_obj.uid,), queue='home_newest_crawler',
+        app.send_task('tasks.home.crawl_weibo_data_newest', args=(id_obj.uid,), queue='home_newest_crawler',
                       routing_key='home_newest_info')
 
 

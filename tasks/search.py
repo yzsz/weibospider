@@ -6,6 +6,7 @@ from page_get import get_page
 from config import get_max_search_page
 from page_parse import search as parse_search
 from db.dao import (KeywordsOper, KeywordsDataOper, WbDataOper)
+from db.redis_db import LastCache
 from decorators import session_used
 from config import read_provinces
 import re
@@ -63,6 +64,10 @@ def search_keyword_city(keyword, keyword_id, city):
     crawler.info('We are searching keyword "{}"'.format(keyword))
     cur_page = 1
     encode_keyword = url_parse.quote(keyword)
+    last_mid, last_updated = LastCache.get_search_last(keyword + ' ' + city)
+    if not last_mid or not last_updated:
+        last_mid, last_updated = KeywordsDataOper.get_keyword_last(keyword_id)
+
     while cur_page < LIMIT:
         cur_url = URL_CITY.format(encode_keyword, city, cur_page)
         # current only for login, maybe later crawling page one without login
@@ -73,8 +78,6 @@ def search_keyword_city(keyword, keyword_id, city):
 
         search_list = parse_search.get_search_info(search_page)
 
-        # Because the search results are sorted by time, if any result has been stored in mysql,
-        # We need not crawl the same keyword in this turn
         for wb_data in search_list:
             rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
             # todo incremental crawling using time
@@ -122,17 +125,19 @@ def search_keyword_timerange_all(keyword, keyword_id, date, hour):
 
         # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
         wb_data_list = []
+        keyword_timerange_wbid_list = []
         for wb_data in search_list:
             rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
             wid = KeywordsOper.get_searched_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             if not rs:
                 wb_data_list.append(wb_data)
             if not wid:
-                KeywordsDataOper.insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
+                keyword_timerange_wbid_list.append([keyword_id, wb_data.weibo_id])
             # send task for crawling user info
             app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
                           routing_key='for_user_info')
         WbDataOper.add_all(wb_data_list)
+        KeywordsDataOper.insert_keyword_timerange_wbid_list(keyword_timerange_wbid_list)
 
         if 'page next S_txt1 S_line1' in search_page:
             cur_page += 1
@@ -169,17 +174,19 @@ def search_keyword_timerange_city(keyword, keyword_id, date, hour, province_city
 
         # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
         wb_data_list = []
+        keyword_timerange_wbid_list = []
         for wb_data in search_list:
             rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
             wid = KeywordsOper.get_searched_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
             if not rs:
                 wb_data_list.append(wb_data)
             if not wid:
-                KeywordsDataOper.insert_keyword_timerange_wbid(keyword_id, wb_data.weibo_id, province_city_id)
+                keyword_timerange_wbid_list.append([keyword_id, wb_data.weibo_id, province_city_id])
             # send task for crawling user info
             app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
                           routing_key='for_user_info')
         WbDataOper.add_all(wb_data_list)
+        KeywordsDataOper.insert_keyword_timerange_wbid_list(keyword_timerange_wbid_list)
 
         if 'page next S_txt1 S_line1' in search_page:
             cur_page += 1
@@ -192,8 +199,12 @@ def search_keyword_timerange_city(keyword, keyword_id, date, hour, province_city
 def execute_search_task():
     keywords = KeywordsOper.get_search_keywords()
     for each in keywords:
-        app.send_task('tasks.search.search_keyword', args=(each[0], each[1]), queue='search_crawler',
-                      routing_key='for_search_info')
+        if re.match("\d+:\d+", each[1]):
+            app.send_task('tasks.search.search_keyword', args=(each[0], each[2]), queue='search_city_crawler',
+                          routing_key='for_search_city_info')
+        else:
+            app.send_task('tasks.search.search_keyword_city', args=(each[0], each[2]), queue='search_crawler',
+                          routing_key='for_search_info')
 
 
 def __execute_search_timerange_task_all(each_timerange):

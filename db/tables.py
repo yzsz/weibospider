@@ -166,12 +166,6 @@ home_ids = Table("home_ids", metadata,
                  Column("home_collection_id", INTEGER, nullable=False),
                  Column("uid", String(20), nullable=False))
 
-# last crawled mids table
-home_last = Table("home_last", metadata,
-                  Column("uid", String(20), nullable=False),
-                  Column("last_mid", String(200), nullable=False),
-                  Column("last_updated", TIMESTAMP, nullable=False))
-
 __all__ = ['login_info', 'wbuser', 'seed_ids', 'keywords', 'weibo_data', 'keywords_wbdata', 'weibo_comment',
            'weibo_repost', 'user_relation', 'weibo_dialogue', 'weibo_praise', 'keywords_timerange',
-           'keywords_wbdata_timerange', 'home_collections', 'home_ids', 'home_last']
+           'keywords_wbdata_timerange', 'home_collections', 'home_ids']
