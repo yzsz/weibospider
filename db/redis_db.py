@@ -205,12 +205,12 @@ class LastCache(object):
         return cls.__get_last('home', uid)
 
     @classmethod
-    def set_search_last(cls, keyword, last_mid, last_updated):
-        cls.__set_last('search', keyword, last_mid, last_updated)
+    def set_search_last(cls, keyword_id, last_mid, last_updated):
+        cls.__set_last('search', keyword_id, last_mid, last_updated)
 
     @classmethod
-    def get_search_last(cls, keyword):
-        return cls.__get_last('search', keyword)
+    def get_search_last(cls, keyword_id):
+        return cls.__get_last('search', keyword_id)
 
     @classmethod
     def __set_last(cls, name_prefix, key, last_mid, last_updated):

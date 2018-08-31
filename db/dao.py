@@ -56,17 +56,35 @@ class KeywordsDataOper:
     @db_commit_decorator
     def insert_keyword_wbid(cls, keyword_id, wbid):
         keyword_wbdata = KeywordsWbdata()
-        keyword_wbdata.wb_id = wbid
         keyword_wbdata.keyword_id = keyword_id
+        keyword_wbdata.wb_id = wbid
         db_session.add(keyword_wbdata)
         db_session.commit()
 
     @classmethod
     @db_commit_decorator
+    def insert_keyword_wbid_list(cls, input_list):
+        keyword_wbdata_list = [cls.__create_keyword_wbid(item) for item in input_list]
+        try:
+            db_session.add_all(keyword_wbdata_list)
+            db_session.commit()
+        except (SqlalchemyIntegrityError, PymysqlIntegrityError, InvalidRequestError):
+            for item in keyword_wbdata_list:
+                cls.insert_keyword_wbid(item.keyword_id, item.wbid)
+
+    @classmethod
+    def __create_keyword_wbid(cls, item):
+        keyword_wbdata = KeywordsWbdata()
+        keyword_wbdata.keyword_id = item[0]
+        keyword_wbdata.wb_id = item[1]
+        return keyword_wbdata
+
+    @classmethod
+    @db_commit_decorator
     def insert_keyword_timerange_wbid(cls, keyword_timerange_id, wbid, city=''):
         keyword_wbdata_timerange = KeywordsTimerangeWbdata()
-        keyword_wbdata_timerange.wb_id = wbid
         keyword_wbdata_timerange.keyword_timerange_id = keyword_timerange_id
+        keyword_wbdata_timerange.wb_id = wbid
         keyword_wbdata_timerange.city = city
         db_session.add(keyword_wbdata_timerange)
         db_session.commit()
@@ -74,32 +92,38 @@ class KeywordsDataOper:
     @classmethod
     @db_commit_decorator
     def insert_keyword_timerange_wbid_list(cls, input_list):
-        keyword_wbdata_timerange_list = [cls.__create_keyword_wbdata_timerange(item) for item in input_list]
-        db_session.add_all(keyword_wbdata_timerange_list)
-        db_session.commit()
+        keyword_wbdata_timerange_list = [cls.__create_keyword_wbid_timerange(item) for item in input_list]
+        try:
+            db_session.add_all(keyword_wbdata_timerange_list)
+            db_session.commit()
+        except (SqlalchemyIntegrityError, PymysqlIntegrityError, InvalidRequestError):
+            for item in keyword_wbdata_timerange_list:
+                cls.insert_keyword_timerange_wbid(item.keyword_timerange_id, item.wb_id, item.city)
 
     @classmethod
-    def __create_keyword_wbdata_timerange(cls, item):
+    def __create_keyword_wbid_timerange(cls, item):
         keyword_wbdata_timerange = KeywordsTimerangeWbdata()
-        keyword_wbdata_timerange.wb_id = item[0]
-        keyword_wbdata_timerange.keyword_timerange_id = item[1]
+        keyword_wbdata_timerange.keyword_timerange_id = item[0]
+        keyword_wbdata_timerange.wb_id = item[1]
         if len(item) >= 3:
             keyword_wbdata_timerange.city = item[2]
         else:
             keyword_wbdata_timerange.city = ''
+        return keyword_wbdata_timerange
 
     @classmethod
-    def get_keyword_last(cls, keyword_id):
-        return db_session.query(WeiboData.weibo_id, WeiboData.create_time.desc()) \
+    def get_last(cls, keyword_id):
+        r = db_session.query(WeiboData.weibo_id, WeiboData.create_time.desc()) \
             .join(KeywordsWbdata).on(WeiboData.weibo_id == KeywordsWbdata.wb_id) \
             .join(KeyWords).on(KeywordsWbdata.keyword_id == KeyWords.id) \
             .filter(KeyWords.id == keyword_id).first()
+        return r[0], r[1]
 
 
 class KeywordsOper:
     @classmethod
     def get_search_keywords(cls):
-        return db_session.query(KeyWords.keyword, KeyWords.area, KeyWords.id).filter(text('enable=1')).all()
+        return db_session.query(KeyWords.keyword, KeyWords.id, KeyWords.area).filter(text('enable=1')).all()
 
     @classmethod
     def get_search_keywords_timerange(cls):
@@ -324,6 +348,7 @@ class HomeCollectionOper(CommonOper):
             .filter(HomeIds.home_collection_id == HomeCollections.id).all()
 
     @classmethod
-    def get_home_last(cls, uid):
-        return db_session.query(WeiboData.weibo_id, WeiboData.create_time.desc()) \
+    def get_last(cls, uid):
+        r = db_session.query(WeiboData.weibo_id, WeiboData.create_time.desc()) \
             .filter(WeiboData.uid == uid).first()
+        return r[0], r[1]

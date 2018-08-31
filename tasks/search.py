@@ -66,7 +66,7 @@ def search_keyword_city(keyword, keyword_id, city):
     encode_keyword = url_parse.quote(keyword)
     last_mid, last_updated = LastCache.get_search_last(keyword + ' ' + city)
     if not last_mid or not last_updated:
-        last_mid, last_updated = KeywordsDataOper.get_keyword_last(keyword_id)
+        last_mid, last_updated = KeywordsDataOper.get_last(keyword_id)
 
     while cur_page < LIMIT:
         cur_url = URL_CITY.format(encode_keyword, city, cur_page)
@@ -78,18 +78,26 @@ def search_keyword_city(keyword, keyword_id, city):
 
         search_list = parse_search.get_search_info(search_page)
 
-        for wb_data in search_list:
-            rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
-            # todo incremental crawling using time
-            if rs:
-                crawler.info('Weibo {} has been crawled, skip it.'.format(wb_data.weibo_id))
-                continue
-            else:
-                WbDataOper.add_one(wb_data)
-                KeywordsDataOper.insert_keyword_wbid(keyword_id, wb_data.weibo_id)
-                # todo: only add seed ids and remove this task
-                app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
-                              routing_key='for_user_info')
+        search_list_length = len(search_list)
+        last_index = search_list_length - 1
+        keyword_wbid_list = []
+        for i in range(0, len(search_list)):
+            keyword_wbid_list.append([keyword_id, search_list[i].weibo_id])
+            app.send_task('tasks.user.crawl_person_infos', args=(search_list[i].uid,), queue='user_crawler',
+                          routing_key='for_user_info')
+            if last_mid and last_mid == search_list[i].weibo_id \
+                    or last_updated and last_updated > search_list[i].create_time:
+                search_list = search_list[0:i]
+                last_index = i
+                break
+
+        WbDataOper.add_all(search_list)
+        KeywordsDataOper.insert_keyword_wbid_list(keyword_wbid_list)
+        if search_list and cur_page == 1:
+            LastCache.set_search_last(keyword_id, search_list[0].weibo_id, search_list[0].create_time)
+        if last_index != search_list_length - 1:
+            break
+
         if cur_page == 1:
             cur_page += 1
         elif 'noresult_tit' not in search_page:
@@ -199,12 +207,19 @@ def search_keyword_timerange_city(keyword, keyword_id, date, hour, province_city
 def execute_search_task():
     keywords = KeywordsOper.get_search_keywords()
     for each in keywords:
-        if re.match("\d+:\d+", each[1]):
-            app.send_task('tasks.search.search_keyword', args=(each[0], each[2]), queue='search_city_crawler',
-                          routing_key='for_search_city_info')
-        else:
-            app.send_task('tasks.search.search_keyword_city', args=(each[0], each[2]), queue='search_crawler',
+        if not re.match("\d+:\d+", each[1]):
+            app.send_task('tasks.search.search_keyword', args=(each[0], each[1]), queue='search_crawler',
                           routing_key='for_search_info')
+
+
+@app.task(ignore_result=True)
+def execute_search_city_task():
+    keywords = KeywordsOper.get_search_keywords()
+    for each in keywords:
+        if re.match("\d+:\d+", each[1]):
+            app.send_task('tasks.search.search_keyword_city', args=(each[0], each[1], each[2]),
+                          queue='search_city_crawler',
+                          routing_key='for_search_city_info')
 
 
 def __execute_search_timerange_task_all(each_timerange):

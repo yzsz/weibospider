@@ -207,7 +207,7 @@ def crawl_weibo_data_collection(uid):
     cur_page = 1
     last_mid, last_updated = LastCache.get_home_last(uid)
     if not last_mid or not last_updated:
-        last_mid, last_updated = HomeCollectionOper.get_home_last(uid)
+        last_mid, last_updated = HomeCollectionOper.get_last(uid)
 
     while cur_page <= limit:
         url = HOME_URL.format(uid, cur_page)
