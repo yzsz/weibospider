@@ -75,7 +75,7 @@ class KeywordsDataOper:
 class KeywordsOper:
     @classmethod
     def get_search_keywords(cls):
-        return db_session.query(KeyWords.keyword, KeyWords.id).filter(text('enable=1')).all()
+        return db_session.query(KeyWords.keyword, KeyWords.area, KeyWords.id).filter(text('enable=1')).all()
 
     @classmethod
     def get_search_keywords_timerange(cls):
@@ -103,7 +103,7 @@ class SeedidsOper:
     @classmethod
     def get_seed_ids(cls):
         """
-        Get all user id to be crawled
+        Get all user ids to be crawled
         :return: user ids
         """
         return db_session.query(SeedIds.uid).filter(text('is_crawled=0')).all()

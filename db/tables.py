@@ -48,6 +48,7 @@ seed_ids = Table('seed_ids', metadata,
 keywords = Table('keywords', metadata,
                  Column("id", INTEGER, primary_key=True, autoincrement=True),
                  Column("keyword", String(200), unique=True),
+                 Column("area", String(50), nullable=False),
                  Column("enable", INTEGER, default=1, server_default='1'),
                  )
 
