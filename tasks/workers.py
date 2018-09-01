@@ -54,6 +54,11 @@ app.conf.update(
             'schedule': timedelta(hours=2),
             'options': {'queue': 'search_crawler', 'routing_key': 'for_search_info'}
         },
+        'search_city_task': {
+            'task': 'tasks.search.execute_search_city_task',
+            'schedule': timedelta(minutes=10),
+            'options': {'queue': 'search_city_crawler', 'routing_key': 'for_search_city_info'}
+        },
         'home_task': {
             'task': 'tasks.home.execute_home_task',
             'schedule': timedelta(hours=24),
@@ -66,7 +71,7 @@ app.conf.update(
         },
         'home_collection_task': {
             'task': 'tasks.home.execute_home_collection_task',
-            'schedule': timedelta(minutes=5),
+            'schedule': timedelta(minutes=10),
             'options': {'queue': 'home_collection_crawler', 'routing_key': 'home_collection_info'}
         },
         'comment_task': {
@@ -89,10 +94,13 @@ app.conf.update(
         Queue('login_queue', exchange=Exchange('login_queue', type='direct'), routing_key='for_login'),
 
         Queue('user_crawler', exchange=Exchange('user_crawler', type='direct'), routing_key='for_user_info'),
+        Queue('fans_followers', exchange=Exchange('fans_followers', type='direct'), routing_key='for_fans_followers'),
+
+        Queue('search_city_crawler', exchange=Exchange('search_city_crawler', type='direct'),
+              routing_key='for_search_city_info'),
         Queue('search_crawler', exchange=Exchange('search_crawler', type='direct'), routing_key='for_search_info'),
         Queue('search_timerange_crawler', exchange=Exchange('search_timerange_crawler', type='direct'),
               routing_key='for_search_timerange_info'),
-        Queue('fans_followers', exchange=Exchange('fans_followers', type='direct'), routing_key='for_fans_followers'),
 
         Queue('home_crawler', exchange=Exchange('home_crawler', type='direct'), routing_key='home_info'),
         Queue('home_newest_crawler', exchange=Exchange('home_newest_crawler', type='direct'),
