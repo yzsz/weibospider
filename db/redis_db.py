@@ -222,5 +222,6 @@ class LastCache(object):
     def __get_last(cls, name_prefix, key):
         last_mid = last_cache_con.hget(name_prefix + 'last_mid', key)
         last_updated = last_cache_con.hget(name_prefix + 'last_updated', key)
-        last_updated = datetime.datetime.strptime(last_updated, '%Y-%m-%d %H:%M')
+        if last_updated:
+            last_updated = datetime.datetime.strptime(last_updated, '%Y-%m-%d %H:%M')
         return last_mid, last_updated

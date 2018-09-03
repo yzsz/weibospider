@@ -31,8 +31,10 @@ def search_keyword(keyword, keyword_id):
         # current only for login, maybe later crawling page one without login
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
-            crawler.warning('No search result for keyword {}, the source page is {}'.format(keyword, search_page))
-            return
+            crawler.warning(
+                'Searching for keyword {} failed in page {}, the source page url is {}'.format(keyword, cur_page,
+                                                                                               cur_url))
+            raise Exception('Cannot get page')
 
         search_list = parse_search.get_search_info(search_page)
 
@@ -72,9 +74,12 @@ def search_keyword_city(keyword, keyword_id, city):
         cur_url = URL_CITY.format(encode_keyword, city, cur_page)
         # current only for login, maybe later crawling page one without login
         search_page = get_page(cur_url, auth_level=2)
+        print(search_page)
         if not search_page:
-            crawler.warning('No search result for keyword {}, the source page is {}'.format(keyword, search_page))
-            return
+            crawler.warning(
+                'Searching for keyword {} failed in page {}, the source page url is {}'.format(keyword, cur_page,
+                                                                                               cur_url))
+            raise Exception('Cannot get page')
 
         search_list = parse_search.get_search_info(search_page)
 
@@ -121,7 +126,7 @@ def search_keyword_timerange_all(keyword, keyword_id, date, hour):
 
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
-            crawler.error('Searching for keyword {} failed in page {}, the source page url is {} (all)'
+            crawler.warning('Searching for keyword {} failed in page {}, the source page url is {} (all)'
                           .format(keyword, cur_page, cur_url))
             raise Exception('Cannot get page')
 
@@ -207,7 +212,7 @@ def search_keyword_timerange_city(keyword, keyword_id, date, hour, province_city
 def execute_search_task():
     keywords = KeywordsOper.get_search_keywords()
     for each in keywords:
-        if not re.match("\d+:\d+", each[1]):
+        if not re.match("\d+:\d+", each[2]):
             app.send_task('tasks.search.search_keyword', args=(each[0], each[1]), queue='search_crawler',
                           routing_key='for_search_info')
 
@@ -216,7 +221,7 @@ def execute_search_task():
 def execute_search_city_task():
     keywords = KeywordsOper.get_search_keywords()
     for each in keywords:
-        if re.match("\d+:\d+", each[1]):
+        if re.match("\d+:\d+", each[2]):
             app.send_task('tasks.search.search_keyword_city', args=(each[0], each[1], each[2]),
                           queue='search_city_crawler',
                           routing_key='for_search_city_info')

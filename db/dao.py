@@ -1,4 +1,5 @@
 from sqlalchemy import text
+from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError as SqlalchemyIntegrityError
 from pymysql.err import IntegrityError as PymysqlIntegrityError
 from sqlalchemy.exc import InvalidRequestError
@@ -113,11 +114,15 @@ class KeywordsDataOper:
 
     @classmethod
     def get_last(cls, keyword_id):
-        r = db_session.query(WeiboData.weibo_id, WeiboData.create_time.desc()) \
-            .join(KeywordsWbdata).on(WeiboData.weibo_id == KeywordsWbdata.wb_id) \
-            .join(KeyWords).on(KeywordsWbdata.keyword_id == KeyWords.id) \
-            .filter(KeyWords.id == keyword_id).first()
-        return r[0], r[1]
+        r = db_session.query(WeiboData.weibo_id, WeiboData.create_time) \
+            .join(KeywordsWbdata, WeiboData.weibo_id == KeywordsWbdata.wb_id) \
+            .join(KeyWords, KeywordsWbdata.keyword_id == KeyWords.id) \
+            .filter(KeyWords.id == keyword_id)\
+            .order_by(desc(WeiboData.create_time)).first()
+        if r:
+            return r[0], r[1]
+        else:
+            return None, None
 
 
 class KeywordsOper:
@@ -343,12 +348,17 @@ class RepostOper(CommonOper):
 class HomeCollectionOper(CommonOper):
     @classmethod
     def get_uids(cls):
-        return db_session.query(HomeIds.uid).join(HomeCollections) \
+        return db_session.query(HomeIds.uid)\
+            .join(HomeCollections, HomeCollections.id == HomeIds.home_collection_id) \
             .filter(HomeCollections.enabled) \
             .filter(HomeIds.home_collection_id == HomeCollections.id).all()
 
     @classmethod
     def get_last(cls, uid):
-        r = db_session.query(WeiboData.weibo_id, WeiboData.create_time.desc()) \
-            .filter(WeiboData.uid == uid).first()
-        return r[0], r[1]
+        r = db_session.query(WeiboData.weibo_id, WeiboData.create_time) \
+            .filter(WeiboData.uid == uid)\
+            .order_by(desc(WeiboData.create_time)).first()
+        if r:
+            return r[0], r[1]
+        else:
+            return None, None

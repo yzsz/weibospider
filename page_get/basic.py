@@ -26,7 +26,7 @@ COOKIES = get_cookies()
 
 
 def is_banned(url):
-    if 'unfreeze' in url or 'accessdeny' in url or 'userblock' in url or 'verifybmobile' in url:
+    if 'unfreeze' in url or 'accessdeny' in url or 'userblock' in url or 'verifybmobile' in url or 'geetest' in url:
         return True
     return False
 

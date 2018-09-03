@@ -163,6 +163,7 @@ home_collections = Table("home_collections", metadata,
 
 # monitoring ids table
 home_ids = Table("home_ids", metadata,
+                 Column("id", INTEGER, primary_key=True),
                  Column("home_collection_id", INTEGER, nullable=False),
                  Column("uid", String(20), nullable=False))
 

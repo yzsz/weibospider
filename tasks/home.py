@@ -25,6 +25,10 @@ def crawl_ajax_page(url, auth_level):
     :return: resp.text
     """
     ajax_html = get_page(url, auth_level, is_ajax=True)
+    if not ajax_html:
+        crawler.warning('Fetching home page ajax content of url {} failed', url)
+        raise Exception('Cannot get page')
+
     ajax_wbdata = get_ajax_data(ajax_html)
     if not ajax_wbdata:
         return ''
@@ -47,6 +51,10 @@ def crawl_ajax_page_newest(url, auth_level):
     :return: resp.text
     """
     ajax_html = get_page(url, auth_level, is_ajax=True)
+    if not ajax_html:
+        crawler.warning('Fetching home page ajax content of url {} failed', url)
+        raise Exception('Cannot get page')
+
     ajax_wbdata = get_ajax_data(ajax_html)
     if not ajax_wbdata:
         return ''
@@ -100,6 +108,10 @@ def crawl_weibo_data(uid):
             html = get_page(url, auth_level=1)
         else:
             html = get_page(url, auth_level=2)
+
+        if not html:
+            crawler.warning('Fetching home page of user {} failed', uid)
+            raise Exception('Cannot get page')
         weibo_data = get_data(html)
 
         if not weibo_data:
@@ -157,6 +169,10 @@ def crawl_weibo_data_newest(uid):
             html = get_page(url, auth_level=1)
         else:
             html = get_page(url, auth_level=2)
+
+        if not html:
+            crawler.warning('Fetching home page of user {} failed', uid)
+            raise Exception('Cannot get page')
         weibo_data = get_data(html)
 
         if not weibo_data:
@@ -215,6 +231,10 @@ def crawl_weibo_data_collection(uid):
             html = get_page(url, auth_level=1)
         else:
             html = get_page(url, auth_level=2)
+
+        if not html:
+            crawler.warning('Fetching home page of user {} failed', uid)
+            raise Exception('Cannot get page')
         weibo_data = get_data(html)
 
         if not weibo_data:
