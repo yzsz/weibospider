@@ -93,7 +93,7 @@ def search_keyword_city(keyword, keyword_id, city):
                 search_list = search_list[0:i]
                 last_index = i
                 break
-        wbdata_list = filter(lambda w: not WbDataOper.get_wb_by_mid(wb.weibo_id), search_list)
+        wbdata_list = filter(lambda w: not WbDataOper.get_wb_by_mid(w.weibo_id), search_list)
 
         WbDataOper.add_all(wbdata_list)
         KeywordsDataOper.insert_keyword_wbid_list(keyword_wb_list)
