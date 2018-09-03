@@ -4,7 +4,7 @@ import json
 from utils import text_filter
 from .basic import get_page
 
-BASE_URL = 'http://s.weibo.com/ajax/direct/morethan140?mid={}'
+BASE_URL = 'https://weibo.com/p/aj/mblog/getlongtext?mid={}'
 
 
 def get_cont_of_weibo(mid):
