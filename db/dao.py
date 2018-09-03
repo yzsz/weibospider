@@ -28,6 +28,7 @@ class CommonOper:
             db_session.add_all(data_all)
             db_session.commit()
         except (SqlalchemyIntegrityError, PymysqlIntegrityError, InvalidRequestError):
+            db_session.rollback()
             for data in data_all:
                 cls.add_one(data)
 
@@ -129,6 +130,12 @@ class KeywordsOper:
     @classmethod
     def get_search_keywords(cls):
         return db_session.query(KeyWords.keyword, KeyWords.id, KeyWords.area).filter(text('enable=1')).all()
+
+    @classmethod
+    def get_searched_keyword_wbid(cls, keyword_id, wbid):
+        return db_session.query(KeywordsWbdata.id) \
+            .filter(KeywordsWbdata.keyword_id == keyword_id) \
+            .filter(KeywordsWbdata.wb_id == wbid).first()
 
     @classmethod
     def get_search_keywords_timerange(cls):

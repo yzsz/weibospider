@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 
+from decorators import session_used
 from logger import crawler
 from .workers import app
 from page_parse.user import public
@@ -12,6 +13,7 @@ from page_parse.home import (get_data, get_ajax_data, get_total_page)
 
 # only crawls origin weibo
 HOME_URL = 'http://weibo.com/u/{}?is_ori=1&is_tag=0&profile_ftype=1&page={}'
+HOME_URL_2 = 'http://weibo.com/p/{}/home?is_ori=1&is_tag=0&profile_ftype=1&page={}'
 AJAX_URL = 'http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain={}&pagebar={}&is_ori=1&id={}{}&page={}' \
            '&pre_page={}&__rnd={}'
 timeafter = datetime.strptime(get_time_after(), '%Y-%m-%d %H:%M:%S')
@@ -217,16 +219,18 @@ def crawl_weibo_data_newest(uid):
         cur_page += 1
 
 
+@session_used
 @app.task(ignore_result=True)
 def crawl_weibo_data_collection(uid):
     limit = get_max_home_page()
     cur_page = 1
     last_mid, last_updated = LastCache.get_home_last(uid)
-    if not last_mid or not last_updated:
-        last_mid, last_updated = HomeCollectionOper.get_last(uid)
 
     while cur_page <= limit:
-        url = HOME_URL.format(uid, cur_page)
+        if len(uid) < 16:
+            url = HOME_URL.format(uid, cur_page)
+        else:
+            url = HOME_URL_2.format(uid, cur_page)
         if cur_page == 1:
             html = get_page(url, auth_level=1)
         else:
@@ -302,7 +306,7 @@ def execute_home_newest_task():
 
 @app.task
 def execute_home_collection_task():
-    uids = HomeCollectionOper.get_uids()
-    for uid in uids:
-        app.send_task('tasks.home.crawl_weibo_data_collection', args=(uid,), queue='home_collection_crawler',
+    id_objs = HomeCollectionOper.get_uids()
+    for id_obj in id_objs:
+        app.send_task('tasks.home.crawl_weibo_data_collection', args=(id_obj.uid,), queue='home_collection_crawler',
                       routing_key='home_collection_info')

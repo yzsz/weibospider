@@ -21,6 +21,7 @@ URL_TIMERANGE_CITY = 'http://s.weibo.com/weibo/{}&region=custom:{}&scope=ori&sub
 LIMIT = get_max_search_page() + 1
 
 
+@session_used
 @app.task(ignore_result=True)
 def search_keyword(keyword, keyword_id):
     crawler.info('We are searching keyword "{}"'.format(keyword))
@@ -52,29 +53,25 @@ def search_keyword(keyword, keyword_id):
                 # todo: only add seed ids and remove this task
                 app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
                               routing_key='for_user_info')
-        if cur_page == 1:
-            cur_page += 1
-        elif 'noresult_tit' not in search_page:
+        if 'page next S_txt1 S_line1' in search_page:
             cur_page += 1
         else:
             crawler.info('Keyword {} has been crawled in this turn'.format(keyword))
             return
 
 
+@session_used
 @app.task(ignore_result=True)
 def search_keyword_city(keyword, keyword_id, city):
     crawler.info('We are searching keyword "{}"'.format(keyword))
     cur_page = 1
     encode_keyword = url_parse.quote(keyword)
     last_mid, last_updated = LastCache.get_search_last(keyword + ' ' + city)
-    if not last_mid or not last_updated:
-        last_mid, last_updated = KeywordsDataOper.get_last(keyword_id)
 
     while cur_page < LIMIT:
         cur_url = URL_CITY.format(encode_keyword, city, cur_page)
         # current only for login, maybe later crawling page one without login
         search_page = get_page(cur_url, auth_level=2)
-        print(search_page)
         if not search_page:
             crawler.warning(
                 'Searching for keyword {} failed in page {}, the source page url is {}'.format(keyword, cur_page,
@@ -85,9 +82,10 @@ def search_keyword_city(keyword, keyword_id, city):
 
         search_list_length = len(search_list)
         last_index = search_list_length - 1
-        keyword_wbid_list = []
+        keyword_wb_list = []
         for i in range(0, len(search_list)):
-            keyword_wbid_list.append([keyword_id, search_list[i].weibo_id])
+            if not KeywordsOper.get_searched_keyword_wbid(keyword_id, search_list[i].weibo_id):
+                keyword_wb_list.append([keyword_id, search_list[i].weibo_id])
             app.send_task('tasks.user.crawl_person_infos', args=(search_list[i].uid,), queue='user_crawler',
                           routing_key='for_user_info')
             if last_mid and last_mid == search_list[i].weibo_id \
@@ -97,15 +95,13 @@ def search_keyword_city(keyword, keyword_id, city):
                 break
 
         WbDataOper.add_all(search_list)
-        KeywordsDataOper.insert_keyword_wbid_list(keyword_wbid_list)
+        KeywordsDataOper.insert_keyword_wbid_list(keyword_wb_list)
         if search_list and cur_page == 1:
             LastCache.set_search_last(keyword_id, search_list[0].weibo_id, search_list[0].create_time)
         if last_index != search_list_length - 1:
             break
 
-        if cur_page == 1:
-            cur_page += 1
-        elif 'noresult_tit' not in search_page:
+        if 'page next S_txt1 S_line1' in search_page:
             cur_page += 1
         else:
             crawler.info('Keyword {} has been crawled in this turn'.format(keyword))
@@ -127,7 +123,7 @@ def search_keyword_timerange_all(keyword, keyword_id, date, hour):
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
             crawler.warning('Searching for keyword {} failed in page {}, the source page url is {} (all)'
-                          .format(keyword, cur_page, cur_url))
+                            .format(keyword, cur_page, cur_url))
             raise Exception('Cannot get page')
 
         if cur_page == 1 and 'noresult_tit' in search_page:
