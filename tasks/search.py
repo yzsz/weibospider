@@ -93,8 +93,9 @@ def search_keyword_city(keyword, keyword_id, city):
                 search_list = search_list[0:i]
                 last_index = i
                 break
+        wbdata_list = filter(lambda w: not WbDataOper.get_wb_by_mid(wb.weibo_id), search_list)
 
-        WbDataOper.add_all(search_list)
+        WbDataOper.add_all(wbdata_list)
         KeywordsDataOper.insert_keyword_wbid_list(keyword_wb_list)
         if search_list and cur_page == 1:
             LastCache.set_search_last(keyword_id, search_list[0].weibo_id, search_list[0].create_time)
