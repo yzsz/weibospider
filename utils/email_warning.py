@@ -46,7 +46,7 @@ def send_email(email_from=from_addr, email_pass=from_password, to_addrs=None, se
         server.login(email_from, email_pass)
         rs = server.sendmail(email_from, to_addrs, msg.as_string())
     except Exception as e:
-        other.error('Failed to send emails, {} is raised, here are details:{}'.format(e, format_tb(e.__traceback__)[0]))
+        other.error('Failed to send emails, {} is raised, here are details:{}'.format(e, format_tb(e.__traceback__)))
     else:
         return rs
     finally:

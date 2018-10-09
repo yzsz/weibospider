@@ -19,7 +19,7 @@ def timeout_decorator(func):
         except Exception as e:
             crawler.error('failed to crawl {url}，here are details:{e}, stack is {stack}'.format(url=args[0], e=e,
                                                                                                 stack=format_tb
-                                                                                                (e.__traceback__)[0]))
+                                                                                                (e.__traceback__)))
             return ''
 
     return time_limit
@@ -60,7 +60,7 @@ def parse_decorator(return_value):
                 return func(*keys)
             except Exception as e:
                 parser.error('Failed to parse the page, {} is raised, here are details:{}'.format(
-                    e, format_tb(e.__traceback__)[0]
+                    e, format_tb(e.__traceback__)
                 ))
                 return return_value
 

@@ -62,14 +62,14 @@ def search_keyword(keyword, keyword_id):
 
 @session_used
 @app.task(ignore_result=True)
-def search_keyword_city(keyword, keyword_id, city):
+def search_keyword_city(keyword, keyword_id, province_city_id):
     crawler.info('We are searching keyword "{}"'.format(keyword))
     cur_page = 1
     encode_keyword = url_parse.quote(keyword)
-    last_mid, last_updated = LastCache.get_search_last(keyword + ' ' + city)
+    last_mid, last_updated = LastCache.get_search_last(keyword + ' ' + province_city_id)
 
     while cur_page < LIMIT:
-        cur_url = URL_CITY.format(encode_keyword, city, cur_page)
+        cur_url = URL_CITY.format(encode_keyword, province_city_id, cur_page)
         # current only for login, maybe later crawling page one without login
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
