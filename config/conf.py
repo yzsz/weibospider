@@ -19,6 +19,10 @@ def get_redis_args():
     return cf.get('redis')
 
 
+def get_kafka_args():
+    return cf.get('kafka')
+
+
 def get_timeout():
     return cf.get('time_out')
 

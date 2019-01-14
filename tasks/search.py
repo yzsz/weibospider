@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import timedelta, datetime, time
+from functools import partial
 from urllib import parse as url_parse
 from logger import crawler
 from .workers import app
@@ -8,6 +9,7 @@ from page_parse import search as parse_search
 from db.dao import (KeywordsOper, KeywordsDataOper, WbDataOper)
 from db.redis_db import LastCache
 from decorators import session_used
+from kafka import producer
 from config import read_provinces
 import re
 
@@ -43,6 +45,7 @@ def search_keyword(keyword, keyword_id):
         # We need not crawl the same keyword in this turn
         for wb_data in search_list:
             rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
+            producer.produce_data(topic='test', data=wb_data)
             # todo incremental crawling using time
             if rs:
                 crawler.info('Weibo {} has been crawled, skip it.'.format(wb_data.weibo_id))
@@ -53,7 +56,7 @@ def search_keyword(keyword, keyword_id):
                 # todo: only add seed ids and remove this task
                 app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
                               routing_key='for_user_info')
-        if 'page next S_txt1 S_line1' in search_page:
+        if 'class=\"next\"' in search_page:
             cur_page += 1
         else:
             crawler.info('Keyword {} has been crawled in this turn'.format(keyword))
@@ -102,7 +105,7 @@ def search_keyword_city(keyword, keyword_id, province_city_id):
         if last_index != search_list_length - 1:
             break
 
-        if 'page next S_txt1 S_line1' in search_page:
+        if 'class=\"next\"' in search_page:
             cur_page += 1
         else:
             crawler.info('Keyword {} has been crawled in this turn'.format(keyword))
@@ -111,24 +114,36 @@ def search_keyword_city(keyword, keyword_id, province_city_id):
 
 @app.task(ignore_result=True)
 @session_used
-def search_keyword_timerange_all(keyword, keyword_id, date, hour):
+def search_keyword_timerange_all(keyword, keyword_id, date, hour1, hour2):
+    task_url = partial(URL_TIMERANGE.format, url_parse.quote(keyword),
+                       '%s-%i' % (date, hour1),
+                       '%s-%i' % (date, hour2))
+    __search_history(task_url, keyword_id, keyword, 'all')
+
+
+@app.task(ignore_result=True)
+@session_used
+def search_keyword_timerange_city(keyword, keyword_id, date, hour1, hour2, province_city_id):
+    task_url = partial(URL_TIMERANGE_CITY.format, url_parse.quote(keyword), province_city_id,
+                       "%s-%i" % (date, hour1),
+                       "%s-%i" % (date, hour2))
+    __search_history(task_url, keyword_id, keyword, province_city_id)
+
+
+def __search_history(task_url, keyword_id, keyword, area):
     cur_page = 1
-    encode_keyword = url_parse.quote(keyword)
 
     while cur_page < LIMIT:
-        cur_url = URL_TIMERANGE.format(encode_keyword,
-                                       '%s-%i' % (date, hour),
-                                       '%s-%i' % (date, hour),
-                                       cur_page)
+        cur_url = task_url(cur_page)
 
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
-            crawler.warning('Searching for keyword {} failed in page {}, the source page url is {} (all)'
-                            .format(keyword, cur_page, cur_url))
+            crawler.warning('Searching for keyword {} failed in page {}, the source page url is {} ({})'
+                            .format(keyword, cur_page, cur_url, area))
             raise Exception('Cannot get page')
 
         if cur_page == 1 and 'noresult_tit' in search_page:
-            crawler.info('keyword {} has been crawled in this turn (all)'.format(keyword))
+            crawler.info('keyword {} query has no result ({})'.format(keyword, area))
             return
 
         search_list = parse_search.get_search_info(search_page)
@@ -149,59 +164,10 @@ def search_keyword_timerange_all(keyword, keyword_id, date, hour):
         WbDataOper.add_all(wb_data_list)
         KeywordsDataOper.insert_keyword_timerange_wbid_list(keyword_timerange_wbid_list)
 
-        if 'page next S_txt1 S_line1' in search_page:
+        if 'class=\"next\"' in search_page:
             cur_page += 1
         else:
-            crawler.info('keyword {} has been crawled in this turn (all)'.format(keyword))
-            return
-
-
-@app.task(ignore_result=True)
-@session_used
-def search_keyword_timerange_city(keyword, keyword_id, date, hour, province_city_id):
-    cur_page = 1
-    encode_keyword = url_parse.quote(keyword)
-
-    while cur_page < LIMIT:
-        cur_url = URL_TIMERANGE_CITY.format(encode_keyword, province_city_id,
-                                            "%s-%i" % (date, hour),
-                                            "%s-%i" % (date, hour),
-                                            cur_page)
-
-        search_page = get_page(cur_url, auth_level=2)
-        if not search_page:
-            crawler.warning(
-                'Searching for keyword {} failed in page {}, the source page url is {} ({})'.format(keyword, cur_page,
-                                                                                                    cur_url,
-                                                                                                    province_city_id))
-            raise Exception("Cannot get page")
-
-        if cur_page == 1 and 'noresult_tit' in search_page:
-            crawler.info('keyword {} has been crawled in this turn ({})'.format(keyword, province_city_id))
-            return
-
-        search_list = parse_search.get_search_info(search_page)
-
-        # yzsz: Changed insert logic here for possible duplicate weibos from other tasks
-        wb_data_list = []
-        keyword_timerange_wbid_list = []
-        for wb_data in search_list:
-            rs = WbDataOper.get_wb_by_mid(wb_data.weibo_id)
-            wid = KeywordsOper.get_searched_keyword_timerange_wbid(keyword_id, wb_data.weibo_id)
-            if not rs:
-                wb_data_list.append(wb_data)
-            if not wid:
-                keyword_timerange_wbid_list.append([keyword_id, wb_data.weibo_id, province_city_id])
-            # send task for crawling user info
-            app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
-                          routing_key='for_user_info')
-        WbDataOper.add_all(wb_data_list)
-        KeywordsDataOper.insert_keyword_timerange_wbid_list(keyword_timerange_wbid_list)
-
-        if 'page next S_txt1 S_line1' in search_page:
-            cur_page += 1
-        else:
-            crawler.info('keyword {} has been crawled in this turn ({})'.format(keyword, province_city_id))
+            crawler.info('keyword {} has been crawled in this turn ({})'.format(keyword, area))
             return
 
 
@@ -224,86 +190,47 @@ def execute_search_city_task():
                           routing_key='for_search_city_info')
 
 
-def __execute_search_timerange_task_all(each_timerange):
-    date_cur = each_timerange[2]
-
-    if (each_timerange[4] - date_cur).days == 0:
-        for hour in range(each_timerange[3], each_timerange[5], 1):
-            app.send_task('tasks.search.search_keyword_timerange_all',
-                          args=(each_timerange[0], each_timerange[1],
-                                date_cur.isoformat(), hour),
-                          queue='search_timerange_crawler',
-                          routing_key='for_search_timerange_info')
-
-    else:
-        delta = timedelta(days=1)
-        for hour in range(each_timerange[3], 24, 1):
-            app.send_task('tasks.search.search_keyword_timerange_all',
-                          args=(each_timerange[0], each_timerange[1],
-                                date_cur.isoformat(), hour),
-                          queue='search_timerange_crawler',
-                          routing_key='for_search_timerange_info')
-        date_cur += delta
-
-        while date_cur < each_timerange[4]:
-            for hour in range(0, 24, 1):
-                app.send_task('tasks.search.search_keyword_timerange_all',
-                              args=(each_timerange[0], each_timerange[1],
-                                    date_cur.isoformat(), hour),
-                              queue='search_timerange_crawler',
-                              routing_key='for_search_timerange_info')
-            date_cur += delta
-
-        for hour in range(0, each_timerange[5], 1):
-            app.send_task('tasks.search.search_keyword_timerange_all',
-                          args=(each_timerange[0], each_timerange[1],
-                                date_cur.isoformat(), hour),
-                          queue='search_timerange_crawler',
-                          routing_key='for_search_timerange_info')
+def __dosth_timerange(time_start, time_end, f):
+    time_cur = time_start
+    while time_cur <= time_end:
+        f(time_cur=time_cur)
+        time_cur += timedelta(hours=1)
 
 
-def __execute_search_timerange_task_any(each_timerange):
+def __single_search_timerange_task_all(keyword, keyword_id, time_cur):
+    app.send_task('tasks.search.search_keyword_timerange_all',
+                  args=(keyword, keyword_id,
+                        time_cur.date().isoformat(), time_cur.hour, (time_cur + timedelta(hours=1)).hour),
+                  queue='search_timerange_crawler',
+                  routing_key='for_search_timerange_info')
+
+
+def __single_search_timerange_task_city(keyword, keyword_id, time_cur, province_city_id):
+    app.send_task('tasks.search.search_keyword_timerange_city',
+                  args=(keyword, keyword_id,
+                        time_cur.date().isoformat(), time_cur.hour, (time_cur + timedelta(hours=1)).hour,
+                        province_city_id),
+                  queue='search_timerange_crawler',
+                  routing_key='for_search_timerange_info')
+
+
+def __execute_search_timerange_task_all(time_start, time_end, keyword, keyword_id):
+    __dosth_timerange(time_start, time_end,
+                      partial(__single_search_timerange_task_all,
+                              keyword=keyword, keyword_id=keyword_id))
+
+
+def __execute_search_timerange_task_any(time_start, time_end, keyword, keyword_id):
     provinces = read_provinces()
     for province_city_id in provinces:
-        __execute_search_timerange_task_city(each_timerange, province_city_id)
+        __execute_search_timerange_task_city(time_start, time_end, keyword, keyword_id, province_city_id)
 
 
-def __execute_search_timerange_task_city(each_timerange, province_city_id):
-    date_cur = each_timerange[2]
-
-    if (each_timerange[4] - date_cur).days == 0:
-        for hour in range(each_timerange[3], each_timerange[5], 1):
-            app.send_task('tasks.search.search_keyword_timerange_city',
-                          args=(each_timerange[0], each_timerange[1],
-                                date_cur.isoformat(), hour, province_city_id),
-                          queue='search_timerange_crawler',
-                          routing_key='for_search_timerange_info')
-
-    else:
-        delta = timedelta(days=1)
-        for hour in range(each_timerange[3], 24, 1):
-            app.send_task('tasks.search.search_keyword_timerange_city',
-                          args=(each_timerange[0], each_timerange[1],
-                                date_cur.isoformat(), hour, province_city_id),
-                          queue='search_timerange_crawler',
-                          routing_key='for_search_timerange_info')
-        date_cur += delta
-
-        while date_cur < each_timerange[4]:
-            for hour in range(0, 24, 1):
-                app.send_task('tasks.search.search_keyword_timerange_city',
-                              args=(each_timerange[0], each_timerange[1],
-                                    date_cur.isoformat(), hour, province_city_id),
-                              queue='search_timerange_crawler',
-                              routing_key='for_search_timerange_info')
-            date_cur += delta
-
-        for hour in range(0, each_timerange[5], 1):
-            app.send_task('tasks.search.search_keyword_timerange_city',
-                          args=(each_timerange[0], each_timerange[1],
-                                date_cur.isoformat(), hour, province_city_id),
-                          queue='search_timerange_crawler',
-                          routing_key='for_search_timerange_info')
+def __execute_search_timerange_task_city(time_start, time_end, keyword, keyword_id, province_city_id):
+    __dosth_timerange(time_start, time_end,
+                      partial(__single_search_timerange_task_city,
+                              keyword=keyword, keyword_id=keyword_id,
+                              province_city_id=province_city_id))
 
 
 @app.task(ignore_result=True)
@@ -312,16 +239,21 @@ def execute_search_timerange_task():
               'any': __execute_search_timerange_task_any}
     keywords_timerange = KeywordsOper.get_search_keywords_timerange()
     for each_timerange in keywords_timerange:
-        if re.match("\d+:\d+", each_timerange[6]):
-            __execute_search_timerange_task_city(each_timerange, each_timerange[6])
+        time_start = datetime.combine(each_timerange[2], time(hour=each_timerange[3]))
+        time_end = datetime.combine(each_timerange[4], time(hour=each_timerange[5]))
+        keyword = each_timerange[0]
+        keyword_id = each_timerange[1]
+        area = each_timerange[6]
+        if re.match("\d+:\d+", area):
+            __execute_search_timerange_task_city(time_start, time_end, keyword, keyword_id, area)
         else:
-            __execute_search_timerange = __func.get(each_timerange[6], __execute_search_timerange_task_all)
-            __execute_search_timerange(each_timerange)
+            __execute_search_timerange = __func.get(area, __execute_search_timerange_task_all)
+            __execute_search_timerange(time_start, time_end, keyword, keyword_id)
 
 
 @app.task(ignore_result=True)
 def temp_search_timerange():
     app.send_task('tasks.search.search_keyword_timerange_all',
-                  args=('', 1, '2018-01-01', 0),
+                  args=('林芝', 5, '2017-11-18', 6, 7),
                   queue='search_timerange_crawler',
                   routing_key='for_search_timerange_info')

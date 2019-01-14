@@ -56,55 +56,64 @@ images_path: ''
 image_type: large
 
 db:
-    host: 127.0.0.1
-    port: 3306
-    user: root
-    password: 123456
-    db_name: weibo
-    db_type: mysql
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: 123456
+  db_name: weibo
+  db_type: mysql
 
 redis:
-    host: 1.1.1.1
-    port: 6379
-    password: abcd
-    cookies: 1                   # store and fetch cookies
-    # store fetched urls and results,so you can decide whether retry to crawl the urls or not
-    urls: 2
-    broker: 5                    # broker for celery
-    backend: 6                   # backed for celery
-    id_name: 8                   # user id and names，for repost info analysis
-    # expire_time (hours) for redis db2, if they are useless to you, you can set the value smaller
-    expire_time: 48
-    # redis sentinel for ha. if you neet it, just add sentinel host and port below the sentinel args,like this:
-    ###############################
-    #sentinel:                    #
-    #    - host: 2.2.2.2          #
-    #      port: 26379            #
-    #    - host: 3.3.3.3          #
-    #      port: 26379            #
-    #                             #
-    ###############################
-    sentinel:
+  host: 1.1.1.1
+  port: 6379
+  password: abcd
+  cookies: 1                   # store and fetch cookies
+  # store fetched urls and results,so you can decide whether retry to crawl the urls or not
+  urls: 2
+  broker: 5                    # broker for celery
+  backend: 6                   # backed for celery
+  id_name: 8                   # user id and names，for repost info analysis
+  # expire_time (hours) for redis db2, if they are useless to you, you can set the value smaller
+  expire_time: 48
+  # redis sentinel for ha. if you neet it, just add sentinel host and port below the sentinel args,like this:
+  ###############################
+  #sentinel:                    #
+  #    - host: 2.2.2.2          #
+  #      port: 26379            #
+  #    - host: 3.3.3.3          #
+  #      port: 26379            #
+  #                             #
+  ###############################
+  sentinel:
     - host: 2.2.2.2
       port: 26379
     - host: 3.3.3.3
       port: 26379
     - host: 4.4.4.4
       port: 26380
-    master: mymaster             # redis sentinel master name
-    socket_timeout: 5               # sockt timeout for redis sentinel
-    last_cache: 11
+  master: mymaster             # redis sentinel master name
+  socket_timeout: 5               # sockt timeout for redis sentinel
+  last_cache: 11
+
+
+kafka:
+  bootstrap.servers: localhost:9092
+  retries: 1
+  acks: all
+  batch.size: 16384
+  linger.ms: 500
+  buffer.memory: 33554432
 
 
 # warning by email
 email:
-    # your email must open smtp & pop3 service
-    server: smtp.sina.com
-    port: 587
-    from: xxxx@sina.com   #sendingemailaccount
-    password: xxxxx          #youremailpasswd
-    to: xxxx@139.com      #bind 139 email,so your phone will receive the warning message
-    subject: Warning Of Weibo Spider
-    warning_info: Please find out the reason why the spider stops working
+  # your email must open smtp & pop3 service
+  server: smtp.sina.com
+  port: 587
+  from: xxxx@sina.com   #sendingemailaccount
+  password: xxxxx          #youremailpasswd
+  to: xxxx@139.com      #bind 139 email,so your phone will receive the warning message
+  subject: Warning Of Weibo Spider
+  warning_info: Please find out the reason why the spider stops working
 
 outdated_days: 90

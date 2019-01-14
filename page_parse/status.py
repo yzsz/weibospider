@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 
 from decorators import parse_decorator
 from logger import parser
+from page_get import basic
 
 
 @parse_decorator('')
@@ -215,3 +216,8 @@ def get_upperusername(html, defaultname):
             return defaultname
     else:
         return defaultname
+
+
+def get_create_time(url):
+    create_time_html = basic.get_page('https:' + url, auth_level=1)
+    return re.search(r'date=\\\"(\d+)\\\"', create_time_html).group(1)
