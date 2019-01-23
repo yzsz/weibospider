@@ -26,7 +26,7 @@ LIMIT = get_max_search_page() + 1
 @session_used
 @app.task(ignore_result=True)
 def search_keyword(keyword, keyword_id):
-    crawler.info('We are searching keyword "{}"'.format(keyword))
+    crawler.info('Searching keyword "{}"'.format(keyword))
     cur_page = 1
     encode_keyword = url_parse.quote(keyword)
     while cur_page < LIMIT:
@@ -34,7 +34,7 @@ def search_keyword(keyword, keyword_id):
         # current only for login, maybe later crawling page one without login
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
-            crawler.warning(
+            crawler.error(
                 'Searching for keyword {} failed in page {}, the source page url is {}'.format(keyword, cur_page,
                                                                                                cur_url))
             raise Exception('Cannot get page')
@@ -66,17 +66,17 @@ def search_keyword(keyword, keyword_id):
 @session_used
 @app.task(ignore_result=True)
 def search_keyword_city(keyword, keyword_id, province_city_id):
-    crawler.info('We are searching keyword "{}"'.format(keyword))
+    crawler.info('Searching keyword "{}"'.format(keyword))
     cur_page = 1
     encode_keyword = url_parse.quote(keyword)
-    last_mid, last_updated = LastCache.get_search_last(keyword + ' ' + province_city_id)
+    last_mid, last_updated = LastCache.get_search_last(keyword_id)
 
     while cur_page < LIMIT:
         cur_url = URL_CITY.format(encode_keyword, province_city_id, cur_page)
         # current only for login, maybe later crawling page one without login
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
-            crawler.warning(
+            crawler.error(
                 'Searching for keyword {} failed in page {}, the source page url is {}'.format(keyword, cur_page,
                                                                                                cur_url))
             raise Exception('Cannot get page')
@@ -138,12 +138,12 @@ def __search_history(task_url, keyword_id, keyword, area):
 
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
-            crawler.warning('Searching for keyword {} failed in page {}, the source page url is {} ({})'
-                            .format(keyword, cur_page, cur_url, area))
+            crawler.error('Searching for keyword {} failed in page {}, the source page url is {} ({})'
+                          .format(keyword, cur_page, cur_url, area))
             raise Exception('Cannot get page')
 
         if cur_page == 1 and 'noresult_tit' in search_page:
-            crawler.info('keyword {} query has no result ({})'.format(keyword, area))
+            crawler.info('Keyword {} query has no result ({})'.format(keyword, area))
             return
 
         search_list = parse_search.get_search_info(search_page)
@@ -167,7 +167,7 @@ def __search_history(task_url, keyword_id, keyword, area):
         if 'class=\"next\"' in search_page:
             cur_page += 1
         else:
-            crawler.info('keyword {} has been crawled in this turn ({})'.format(keyword, area))
+            crawler.info('Keyword {} has been crawled in this turn ({})'.format(keyword, area))
             return
 
 
@@ -175,7 +175,7 @@ def __search_history(task_url, keyword_id, keyword, area):
 def execute_search_task():
     keywords = KeywordsOper.get_search_keywords()
     for each in keywords:
-        if not re.match("\d+:\d+", each[2]):
+        if not re.match(r"\d+:\d+", each[2]):
             app.send_task('tasks.search.search_keyword', args=(each[0], each[1]), queue='search_crawler',
                           routing_key='for_search_info')
 
@@ -184,7 +184,7 @@ def execute_search_task():
 def execute_search_city_task():
     keywords = KeywordsOper.get_search_keywords()
     for each in keywords:
-        if re.match("\d+:\d+", each[2]):
+        if re.match(r"\d+:\d+", each[2]):
             app.send_task('tasks.search.search_keyword_city', args=(each[0], each[1], each[2]),
                           queue='search_city_crawler',
                           routing_key='for_search_city_info')
@@ -244,7 +244,7 @@ def execute_search_timerange_task():
         keyword = each_timerange[0]
         keyword_id = each_timerange[1]
         area = each_timerange[6]
-        if re.match("\d+:\d+", area):
+        if re.match(r"\d+:\d+", area):
             __execute_search_timerange_task_city(time_start, time_end, keyword, keyword_id, area)
         else:
             __execute_search_timerange = __func.get(area, __execute_search_timerange_task_all)

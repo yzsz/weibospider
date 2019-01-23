@@ -195,6 +195,10 @@ class IdNames(object):
         return ''
 
 
+MID_SUFFIX = '_last_mid'
+UPDATED_SUFFIX = '_last_updated'
+
+
 class LastCache(object):
     @classmethod
     def set_home_last(cls, uid, last_mid, last_updated):
@@ -215,15 +219,15 @@ class LastCache(object):
     @classmethod
     def __set_last(cls, name_prefix, key, last_mid, last_updated):
         last_updated = last_updated.strftime('%Y-%m-%d %H:%M')
-        last_cache_con.hset(name_prefix + 'last_mid', key, last_mid)
-        last_cache_con.hset(name_prefix + 'last_updated', key, last_updated)
+        last_cache_con.hset(name_prefix + MID_SUFFIX, key, last_mid)
+        last_cache_con.hset(name_prefix + UPDATED_SUFFIX, key, last_updated)
 
     @classmethod
     def __get_last(cls, name_prefix, key):
-        last_mid = last_cache_con.hget(name_prefix + 'last_mid', key)
+        last_mid = last_cache_con.hget(name_prefix + MID_SUFFIX, key)
         if last_mid:
             last_mid = last_mid.decode()
-        last_updated = last_cache_con.hget(name_prefix + 'last_updated', key)
+        last_updated = last_cache_con.hget(name_prefix + UPDATED_SUFFIX, key)
         if last_updated:
             last_updated = datetime.datetime.strptime(last_updated.decode(), '%Y-%m-%d %H:%M')
         return last_mid, last_updated

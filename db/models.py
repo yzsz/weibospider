@@ -30,7 +30,14 @@ class WeiboData(Base):
     __table__ = weibo_data
 
     def __repr__(self):
-        return 'weibo url:{};weibo content:{}'.format(self.weibo_url, self.weibo_cont)
+        return 'weibo url:{};mid:{};uid:{};weibo content:{};' \
+               'location:{};create_time:{};weibo_img:{};weibo_img_path:{};' \
+               'weibo_video:{};repost_num:{};comment_num:{};praise_num:{};' \
+               'is_origin:{};device:{}'.format(
+            self.weibo_url, self.weibo_id, self.uid, self.weibo_cont,
+            self.weibo_location, str(self.create_time), self.weibo_img, self.weibo_img_path,
+            self.weibo_video, str(self.repost_num), str(self.comment_num), str(self.praise_num),
+            str(self.is_origin), self.device)
 
 
 class KeywordsWbdata(Base):
