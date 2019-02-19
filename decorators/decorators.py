@@ -1,5 +1,4 @@
 import time
-import collections
 from functools import wraps, partial
 from traceback import format_tb
 

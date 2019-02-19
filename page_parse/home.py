@@ -51,7 +51,7 @@ def get_weibo_info_detail(each, html):
     if m:
         wb_data.uid = m.group(1)
     else:
-        parser.warning("fail to get user'sid, the page source is{}".format(html))
+        parser.warning("fail to get user's id, the page source is{}".format(html))
         return None
 
     weibo_pattern = 'mid=(\\d+)'

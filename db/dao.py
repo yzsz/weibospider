@@ -1,3 +1,5 @@
+from collections import Iterable
+
 from sqlalchemy import text
 from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError as SqlalchemyIntegrityError
@@ -23,7 +25,7 @@ class CommonOper:
 
     @classmethod
     @db_commit_decorator
-    def add_all(cls, data_all):
+    def add_all(cls, data_all: Iterable):
         try:
             db_session.add_all(data_all)
             db_session.commit()

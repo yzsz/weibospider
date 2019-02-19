@@ -25,6 +25,10 @@ EXCP_INTERAL = get_excp_interal()
 COOKIES = get_cookies()
 
 
+# Disable annoying InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+
+
 def is_banned(url):
     if 'unfreeze' in url or 'accessdeny' in url or 'userblock' in url or 'verifybmobile' in url or 'geetest' in url:
         return True
