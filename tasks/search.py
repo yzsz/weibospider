@@ -86,6 +86,26 @@ def __search_latest(task_url, keyword_id, area):
 
 
 @app.task(ignore_result=True)
+def execute_search_task():
+    keywords = KeywordsOper.get_search_keywords()
+    for each in keywords:
+        if not re.match(r"\d+:\d+", each[2]):
+            app.send_task('tasks.search.search_keyword', args=(each[0], each[1]),
+                          queue='search_crawler',
+                          routing_key='for_search_info')
+
+
+@app.task(ignore_result=True)
+def execute_search_city_task():
+    keywords = KeywordsOper.get_search_keywords()
+    for each in keywords:
+        if re.match(r"\d+:\d+", each[2]):
+            app.send_task('tasks.search.search_keyword_city', args=(each[0], each[1], each[2]),
+                          queue='search_city_crawler',
+                          routing_key='for_search_city_info')
+
+
+@app.task(ignore_result=True)
 @session_used
 def search_keyword_timerange_all(keyword, keyword_id, date, hour1, hour2):
     crawler.info('Searching for keyword "{}" at {} from {} to {}. (all)'
@@ -148,25 +168,6 @@ def __search_history(task_url, keyword_id, area):
         else:
             crawler.info('Keyword range id {} has been crawled in this turn ({})'.format(keyword_id, area))
             return
-
-
-@app.task(ignore_result=True)
-def execute_search_task():
-    keywords = KeywordsOper.get_search_keywords()
-    for each in keywords:
-        if not re.match(r"\d+:\d+", each[2]):
-            app.send_task('tasks.search.search_keyword', args=(each[0], each[1]), queue='search_crawler',
-                          routing_key='for_search_info')
-
-
-@app.task(ignore_result=True)
-def execute_search_city_task():
-    keywords = KeywordsOper.get_search_keywords()
-    for each in keywords:
-        if re.match(r"\d+:\d+", each[2]):
-            app.send_task('tasks.search.search_keyword_city', args=(each[0], each[1], each[2]),
-                          queue='search_city_crawler',
-                          routing_key='for_search_city_info')
 
 
 def __dosth_timerange(time_start, time_end, f):

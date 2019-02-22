@@ -1,6 +1,7 @@
 import json
 import socket
 import datetime
+from collections import Iterable
 
 import redis
 from redis.sentinel import Sentinel
@@ -38,7 +39,7 @@ if sentinel_args:
     broker_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=broker_db)
     urls_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=urls_db)
     id_name_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=id_name_db)
-    last_cache_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=last_cache_db)
+    cache_con = sentinel.master_for(master_name, socket_timeout=socket_timeout, db=last_cache_db)
 else:
     host = REDIS_ARGS.get('host', '127.0.0.1')
     port = REDIS_ARGS.get('port', 6379)
@@ -46,7 +47,7 @@ else:
     broker_con = redis.Redis(host=host, port=port, password=password, db=broker_db)
     urls_con = redis.Redis(host=host, port=port, password=password, db=urls_db)
     id_name_con = redis.Redis(host=host, port=port, password=password, db=id_name_db)
-    last_cache_con = redis.Redis(host=host, port=port, password=password, db=last_cache_db)
+    cache_con = redis.Redis(host=host, port=port, password=password, db=last_cache_db)
 
 
 class Cookies(object):
@@ -219,15 +220,34 @@ class LastCache(object):
     @classmethod
     def __set_last(cls, name_prefix, key, last_mid, last_updated):
         last_updated = last_updated.strftime('%Y-%m-%d %H:%M')
-        last_cache_con.hset(name_prefix + MID_SUFFIX, key, last_mid)
-        last_cache_con.hset(name_prefix + UPDATED_SUFFIX, key, last_updated)
+        cache_con.hset(name_prefix + MID_SUFFIX, key, last_mid)
+        cache_con.hset(name_prefix + UPDATED_SUFFIX, key, last_updated)
 
     @classmethod
     def __get_last(cls, name_prefix, key):
-        last_mid = last_cache_con.hget(name_prefix + MID_SUFFIX, key)
+        last_mid = cache_con.hget(name_prefix + MID_SUFFIX, key)
         if last_mid:
             last_mid = last_mid.decode()
-        last_updated = last_cache_con.hget(name_prefix + UPDATED_SUFFIX, key)
+        last_updated = cache_con.hget(name_prefix + UPDATED_SUFFIX, key)
         if last_updated:
             last_updated = datetime.datetime.strptime(last_updated.decode(), '%Y-%m-%d %H:%M')
         return last_mid, last_updated
+
+
+keywords_template = 'keywords_%s'
+start_time_template = 'start_time_%s'
+end_time_template = 'end_time_%s'
+
+
+class DatastreamCache(object):
+    @classmethod
+    def set_keywords(cls, data_type, data_id, keywords: Iterable):
+        cache_con.hset(keywords_template.format(data_type), str(data_id), str.join('\n', keywords))
+
+    @classmethod
+    def set_start_time(cls, data_type, data_id, start_time: datetime.datetime):
+        cache_con.hset(start_time_template.format(data_type), str(data_id), start_time.timestamp())
+
+    @classmethod
+    def set_end_time(cls, data_type, data_id, end_time: datetime.datetime):
+        cache_con.hset(end_time_template.format(data_type), str(data_id), end_time.timestamp())

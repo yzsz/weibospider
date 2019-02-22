@@ -102,6 +102,14 @@ keywords_wbdata_timerange = Table('keywords_wbdata_timerange', metadata,
                                   Column("city", String(50), server_default='')
                                   )
 
+# collections of data streams
+datastreams = Table('datastreams', metadata,
+                    Column("id", INTEGER, nullable=False),
+                    Column("keywords_id", INTEGER, nullable=False),
+                    Column("start_time", TIMESTAMP, nullable=False),
+                    Column("enabled", INTEGER, nullable=False, default=1, server_default=1)
+                    )
+
 # comment table
 weibo_comment = Table('weibo_comment', metadata,
                       Column("id", INTEGER, primary_key=True, autoincrement=True),
@@ -169,4 +177,4 @@ home_ids = Table("home_ids", metadata,
 
 __all__ = ['login_info', 'wbuser', 'seed_ids', 'keywords', 'weibo_data', 'keywords_wbdata', 'weibo_comment',
            'weibo_repost', 'user_relation', 'weibo_dialogue', 'weibo_praise', 'keywords_timerange',
-           'keywords_wbdata_timerange', 'home_collections', 'home_ids']
+           'keywords_wbdata_timerange', 'home_collections', 'home_ids', 'datastreams']

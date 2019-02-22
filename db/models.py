@@ -48,6 +48,10 @@ class KeywordsTimerangeWbdata(Base):
     __table__ = keywords_wbdata_timerange
 
 
+class Datastreams(Base):
+    __table__ = datastreams
+
+
 class WeiboComment(Base):
     __table__ = weibo_comment
 
