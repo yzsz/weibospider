@@ -23,22 +23,6 @@ URL_TIMERANGE_CITY = 'http://s.weibo.com/weibo/{}&region=custom:{}&scope=ori&sub
 LIMIT = get_max_search_page() + 1
 
 
-@session_used
-@app.task(ignore_result=True)
-def search_keyword(keyword, keyword_id):
-    crawler.info('Searching keyword "{}". (all)'.format(keyword))
-    task_url = partial(URL.format, url_parse.quote(keyword))
-    __search_latest(task_url, keyword_id, 'all')
-
-
-@session_used
-@app.task(ignore_result=True)
-def search_keyword_city(keyword, keyword_id, area):
-    crawler.info('Searching keyword "{}". ({})'.format(keyword, area))
-    task_url = partial(URL_CITY.format, url_parse.quote(keyword), area)
-    __search_latest(task_url, keyword_id, area)
-
-
 @kafka_used
 def __search_latest(task_url, keyword_id, area):
     cur_page = 1
@@ -85,6 +69,22 @@ def __search_latest(task_url, keyword_id, area):
             return
 
 
+@session_used
+@app.task(ignore_result=True)
+def search_keyword(keyword, keyword_id):
+    crawler.info('Searching keyword "{}". (all)'.format(keyword))
+    task_url = partial(URL.format, url_parse.quote(keyword))
+    __search_latest(task_url, keyword_id, 'all')
+
+
+@session_used
+@app.task(ignore_result=True)
+def search_keyword_city(keyword, keyword_id, area):
+    crawler.info('Searching keyword "{}". ({})'.format(keyword, area))
+    task_url = partial(URL_CITY.format, url_parse.quote(keyword), area)
+    __search_latest(task_url, keyword_id, area)
+
+
 @app.task(ignore_result=True)
 def execute_search_task():
     keywords = KeywordsOper.get_search_keywords()
@@ -103,30 +103,6 @@ def execute_search_city_task():
             app.send_task('tasks.search.search_keyword_city', args=(each[0], each[1], each[2]),
                           queue='search_city_crawler',
                           routing_key='for_search_city_info')
-
-
-@app.task(ignore_result=True)
-@session_used
-def search_keyword_timerange_all(keyword, keyword_id, date, hour1, hour2):
-    crawler.info('Searching for keyword "{}" at {} from {} to {}. (all)'
-                 .format(keyword, date, hour1, hour2))
-    task_url = partial(URL_TIMERANGE.format,
-                       url_parse.quote(keyword),
-                       '%s-%i' % (date, hour1),
-                       '%s-%i' % (date, hour2))
-    __search_history(task_url, keyword_id, 'all')
-
-
-@app.task(ignore_result=True)
-@session_used
-def search_keyword_timerange_city(keyword, keyword_id, date, hour1, hour2, area):
-    crawler.info('Searching for keyword "{}" at {} from {} to {}. ({})'
-                 .format(keyword, date, hour1, hour2, area))
-    task_url = partial(URL_TIMERANGE_CITY.format,
-                       url_parse.quote(keyword), area,
-                       "%s-%i" % (date, hour1),
-                       "%s-%i" % (date, hour2))
-    __search_history(task_url, keyword_id, area)
 
 
 def __search_history(task_url, keyword_id, area):
@@ -168,6 +144,30 @@ def __search_history(task_url, keyword_id, area):
         else:
             crawler.info('Keyword range id {} has been crawled in this turn ({})'.format(keyword_id, area))
             return
+
+
+@app.task(ignore_result=True)
+@session_used
+def search_keyword_timerange_all(keyword, keyword_id, date, hour1, hour2):
+    crawler.info('Searching for keyword "{}" at {} from {} to {}. (all)'
+                 .format(keyword, date, hour1, hour2))
+    task_url = partial(URL_TIMERANGE.format,
+                       url_parse.quote(keyword),
+                       '%s-%i' % (date, hour1),
+                       '%s-%i' % (date, hour2))
+    __search_history(task_url, keyword_id, 'all')
+
+
+@app.task(ignore_result=True)
+@session_used
+def search_keyword_timerange_city(keyword, keyword_id, date, hour1, hour2, area):
+    crawler.info('Searching for keyword "{}" at {} from {} to {}. ({})'
+                 .format(keyword, date, hour1, hour2, area))
+    task_url = partial(URL_TIMERANGE_CITY.format,
+                       url_parse.quote(keyword), area,
+                       "%s-%i" % (date, hour1),
+                       "%s-%i" % (date, hour2))
+    __search_history(task_url, keyword_id, area)
 
 
 def __dosth_timerange(time_start, time_end, f):

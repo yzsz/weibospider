@@ -92,6 +92,7 @@ keywords_wbdata = Table('keywords_wbdata', metadata,
                         Column("id", INTEGER, primary_key=True, autoincrement=True),
                         Column("keyword_id", INTEGER),
                         Column("wb_id", String(200)),
+                        Column("area", String(50))
                         )
 
 # time-ranged keywords and weibodata relationship
@@ -99,7 +100,7 @@ keywords_wbdata_timerange = Table('keywords_wbdata_timerange', metadata,
                                   Column("id", INTEGER, primary_key=True, autoincrement=True),
                                   Column("keyword_timerange_id", INTEGER),
                                   Column("wb_id", String(200)),
-                                  Column("city", String(50), server_default='')
+                                  Column("area", String(50))
                                   )
 
 # collections of data streams
@@ -167,7 +168,8 @@ weibo_dialogue = Table("weibo_dialogue", metadata,
 home_collections = Table("home_collections", metadata,
                          Column("id", INTEGER, primary_key=True, nullable=False),
                          Column("description", String(200), nullable=False, default=''),
-                         Column("enabled", Boolean, nullable=False, default=False))
+                         Column("enabled", Boolean, nullable=False, default=False),
+                         Column("monitored", String(200), nullable=False, default=''))
 
 # monitoring ids table
 home_ids = Table("home_ids", metadata,
