@@ -19,7 +19,7 @@ from decorators import db_commit_decorator
 class CommonOper:
     @classmethod
     @db_commit_decorator
-    def add_one(cls, data):
+    def add_one(cls, data: WeiboData):
         db_session.add(data)
         db_session.commit()
 
@@ -33,6 +33,12 @@ class CommonOper:
             db_session.rollback()
             for data in data_all:
                 cls.add_one(data)
+
+    @classmethod
+    @db_commit_decorator
+    def check_add_all(cls, data_all: Iterable):
+        data_all = filter(lambda weibo_item: not WbDataOper.get_wb_by_mid(weibo_item.weibo_id), data_all)
+        CommonOper.add_all(data_all)
 
 
 class LoginInfoOper:
@@ -360,6 +366,14 @@ class HomeCollectionOper(CommonOper):
         return db_session.query(HomeIds.uid)\
             .join(HomeCollections, HomeCollections.id == HomeIds.home_collection_id) \
             .filter(HomeCollections.enabled) \
+            .filter(HomeIds.home_collection_id == HomeCollections.id).all()
+
+    @classmethod
+    def get_uids_monitored(cls, monitor_type):
+        return db_session.query(HomeIds.uid) \
+            .join(HomeCollections, HomeCollections.id == HomeIds.home_collection_id) \
+            .filter(HomeCollections.enabled) \
+            .filter(HomeCollections.monitored == monitor_type) \
             .filter(HomeIds.home_collection_id == HomeCollections.id).all()
 
     @classmethod

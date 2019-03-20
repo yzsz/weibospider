@@ -74,6 +74,11 @@ app.conf.update(
             'schedule': timedelta(minutes=10),
             'options': {'queue': 'home_collection_crawler', 'routing_key': 'home_collection_info'}
         },
+        'home_eq_monitor_task': {
+            'task': 'tasks.home.execute_home_eq_monitor_task',
+            'schedule': timedelta(minutes=1),
+            'options': {'queue': 'home_monitor_crawler', 'routing_key': 'home_monitor_info'}
+        },
         'comment_task': {
             'task': 'tasks.comment.execute_comment_task',
             'schedule': timedelta(hours=10),
@@ -107,11 +112,9 @@ app.conf.update(
               routing_key='home_newest_info'),
         Queue('home_collection_crawler', exchange=Exchange('home_collection_crawler', type='direct'),
               routing_key='home_collection_info'),
+        Queue('home_monitor_crawler', exchange=Exchange('home_monitor_crawler', type='direct'),
+              routing_key='home_monitor_info'),
         Queue('ajax_home_crawler', exchange=Exchange('ajax_home_crawler', type='direct'), routing_key='ajax_home_info'),
-        Queue('ajax_home_newest_crawler', exchange=Exchange('ajax_home_newest_crawler', type='direct'),
-              routing_key='ajax_home_newest_info'),
-        Queue('ajax_home_collection_crawler', exchange=Exchange('ajax_home_collection_crawler', type='direct'),
-              routing_key='ajax_home_collection_info'),
 
         Queue('comment_crawler', exchange=Exchange('comment_crawler', type='direct'), routing_key='comment_info'),
         Queue('comment_page_crawler', exchange=Exchange('comment_page_crawler', type='direct'),
