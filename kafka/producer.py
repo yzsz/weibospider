@@ -31,15 +31,15 @@ def kafka_flush():
     p.flush()
 
 
-def __serialize(wb_data, area=''):
-    time = int(datetime.timestamp(wb_data.create_time) * 1000)
+def __serialize(weibo_item: WeiboData, area=''):
+    time = int(datetime.timestamp(weibo_item.create_time) * 1000)
     # bytes([(time >> 56) % 256, (time >> 48) % 256, (time >> 40) % 256, (time >> 32) % 256
     #        , (time >> 24) % 256, (time >> 16) % 256, (time >> 8) % 256, time % 256])
-    return len(wb_data.weibo_cont).to_bytes(length=2, byteorder='big') \
-        .join(len(wb_data.weibo_location).to_bytes(length=2, byteorder='big')) \
+    return len(weibo_item.weibo_cont).to_bytes(length=2, byteorder='big') \
+        .join(len(weibo_item.weibo_location).to_bytes(length=2, byteorder='big')) \
         .join(len(area).to_bytes(length=1, byteorder='big')) \
-        .join(bytes(wb_data.weibo_id, encoding='utf-8')) \
-        .join(bytes(wb_data.weibo_cont, encoding='utf-8')) \
-        .join(bytes(wb_data.weibo_location, encoding='utf-8')) \
+        .join(bytes(weibo_item.weibo_id, encoding='utf-8')) \
+        .join(bytes(weibo_item.weibo_cont, encoding='utf-8')) \
+        .join(bytes(weibo_item.weibo_location, encoding='utf-8')) \
         .join(bytes(area, encoding='utf-8')) \
         .join(time.to_bytes(length=8, byteorder='big'))
