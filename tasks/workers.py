@@ -51,7 +51,7 @@ app.conf.update(
         },
         'search_task': {
             'task': 'tasks.search.execute_search_task',
-            'schedule': timedelta(hours=2),
+            'schedule': timedelta(minutes=1),
             'options': {'queue': 'search_crawler', 'routing_key': 'for_search_info'}
         },
         'search_city_task': {

@@ -218,10 +218,12 @@ class LastCache(object):
         return cls.__get_last('search', keyword_id)
 
     @classmethod
-    def __set_last(cls, name_prefix, key, last_mid, last_updated):
-        last_updated = last_updated.strftime('%Y-%m-%d %H:%M')
-        cache_con.hset(name_prefix + MID_SUFFIX, key, last_mid)
-        cache_con.hset(name_prefix + UPDATED_SUFFIX, key, last_updated)
+    def __set_last(cls, name_prefix, key, last_mid, last_updated: datetime.datetime):
+        if last_mid:
+            cache_con.hset(f'{name_prefix}{MID_SUFFIX}', key, last_mid)
+        if last_updated:
+            last_updated = str(int(last_updated.timestamp() * 1000))
+            cache_con.hset(f'{name_prefix}{UPDATED_SUFFIX}', key, last_updated)
 
     @classmethod
     def __get_last(cls, name_prefix, key):
@@ -230,16 +232,17 @@ class LastCache(object):
             last_mid = last_mid.decode()
         last_updated = cache_con.hget(name_prefix + UPDATED_SUFFIX, key)
         if last_updated:
-            last_updated = datetime.datetime.strptime(last_updated.decode(), '%Y-%m-%d %H:%M')
+            last_updated = datetime.datetime.fromtimestamp(float(last_updated.decode()) / 1000)
         return last_mid, last_updated
 
 
+# 以下代码不使用
 keywords_template = 'keywords_%s'
 start_time_template = 'start_time_%s'
 end_time_template = 'end_time_%s'
 
 
-class DatastreamCache(object):
+class SearchDataCache(object):
     @classmethod
     def set_keywords(cls, data_type, data_id, keywords: Iterable):
         cache_con.hset(keywords_template.format(data_type), str(data_id), str.join('\n', keywords))

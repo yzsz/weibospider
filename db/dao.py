@@ -137,7 +137,8 @@ class KeywordsDataOper:
 class KeywordsOper:
     @classmethod
     def get_search_keywords(cls):
-        return db_session.query(KeyWords.keyword, KeyWords.id, KeyWords.area).filter(text('enable=1')).all()
+        return db_session.query(KeyWords.keyword, KeyWords.id, KeyWords.area, KeyWords.task_start)\
+            .filter(KeyWords.enable == '1').all()
 
     @classmethod
     def get_searched_keyword_wbid(cls, keyword_id, wbid):
@@ -370,7 +371,7 @@ class HomeCollectionOper(CommonOper):
 
     @classmethod
     def get_uids_monitored(cls, monitor_type):
-        return db_session.query(HomeIds.uid) \
+        return db_session.query(HomeIds.uid, HomeIds.task_start) \
             .join(HomeCollections, HomeCollections.id == HomeIds.home_collection_id) \
             .filter(HomeCollections.enabled) \
             .filter(HomeCollections.monitored == monitor_type) \

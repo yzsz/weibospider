@@ -8,7 +8,7 @@ from config import get_max_search_page
 from page_parse import search as parse_search
 from db.dao import (KeywordsOper, KeywordsDataOper, WbDataOper)
 from db.redis_db import LastCache
-from decorators import session_used, kafka_used
+from decorators import session_used
 from kafka import producer
 from config import read_provinces
 import re
@@ -23,18 +23,19 @@ URL_TIMERANGE_CITY = 'http://s.weibo.com/weibo/{}&region=custom:{}&scope=ori&sub
 LIMIT = get_max_search_page() + 1
 
 
-@kafka_used
-def __search_latest(task_url, keyword_id, area):
+def __search_latest(task_url, keyword_id, area, task_start):
     cur_page = 1
     last_mid, last_updated = LastCache.get_search_last(keyword_id)
+    if not last_updated or last_updated < task_start:
+        last_updated = task_start
+    last_mid_this, last_updated_this = None, None
 
     while cur_page < LIMIT:
         cur_url = task_url(cur_page)
         # current only for login, maybe later crawling page one without login
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
-            crawler.error('Searching for keyword id {} failed in page {}, the source page url is {}. ({})'
-                          .format(keyword_id, cur_page, cur_url, area))
+            crawler.error(f'Searching for keyword id {keyword_id} failed in page {cur_page}, the source page url is {cur_url}. ({area})')
             raise Exception('Cannot get page.')
 
         search_list = parse_search.get_search_info(search_page)
@@ -44,7 +45,7 @@ def __search_latest(task_url, keyword_id, area):
         keyword_wb_list = []
         for i in range(0, len(search_list)):
             if not KeywordsOper.get_searched_keyword_wbid(keyword_id, search_list[i].weibo_id):
-                keyword_wb_list.append([keyword_id, search_list[i].weibo_id])
+                keyword_wb_list.append([keyword_id, search_list[i].weibo_id, area])
             app.send_task('tasks.user.crawl_person_infos', args=(search_list[i].uid,), queue='user_crawler',
                           routing_key='for_user_info')
             if last_mid and last_mid == search_list[i].weibo_id \
@@ -54,35 +55,37 @@ def __search_latest(task_url, keyword_id, area):
                 break
         wbdata_list = filter(lambda w: not WbDataOper.get_wb_by_mid(w.weibo_id), search_list)
 
-        producer.produce_data_list('test', wbdata_list, area)
+        producer.produce_data_list('test', 'keyword', keyword_id, wbdata_list, area)
         WbDataOper.add_all(wbdata_list)
         KeywordsDataOper.insert_keyword_wbid_list(keyword_wb_list)
         if search_list and cur_page == 1:
-            LastCache.set_search_last(keyword_id, search_list[0].weibo_id, search_list[0].create_time)
+            last_mid_this, last_updated_this = search_list[0].weibo_id, search_list[0].create_time
         if last_index != search_list_length - 1:
             break
 
         if 'class=\"next\"' in search_page:
             cur_page += 1
         else:
-            crawler.info('Keyword id {} has been crawled in this turn. ({})'.format(keyword_id, area))
+            LastCache.set_search_last(keyword_id, last_mid_this, last_updated_this)
+            crawler.info(f'Keyword id {keyword_id} has been crawled in this turn. ({area})')
             return
 
 
 @session_used
 @app.task(ignore_result=True)
-def search_keyword(keyword, keyword_id):
+def search_keyword(keyword, keyword_id, task_start):
+    task_start = datetime.fromtimestamp(task_start)
     crawler.info('Searching keyword "{}". (all)'.format(keyword))
     task_url = partial(URL.format, url_parse.quote(keyword))
-    __search_latest(task_url, keyword_id, 'all')
+    __search_latest(task_url, keyword_id, 'all', task_start)
 
 
 @session_used
 @app.task(ignore_result=True)
-def search_keyword_city(keyword, keyword_id, area):
+def search_keyword_city(keyword, keyword_id, area, task_start):
     crawler.info('Searching keyword "{}". ({})'.format(keyword, area))
     task_url = partial(URL_CITY.format, url_parse.quote(keyword), area)
-    __search_latest(task_url, keyword_id, area)
+    __search_latest(task_url, keyword_id, area, task_start)
 
 
 @app.task(ignore_result=True)
@@ -90,7 +93,7 @@ def execute_search_task():
     keywords = KeywordsOper.get_search_keywords()
     for each in keywords:
         if not re.match(r"\d+:\d+", each[2]):
-            app.send_task('tasks.search.search_keyword', args=(each[0], each[1]),
+            app.send_task('tasks.search.search_keyword', args=(each[0], each[1], each[3].timestamp()),
                           queue='search_crawler',
                           routing_key='for_search_info')
 
@@ -100,7 +103,7 @@ def execute_search_city_task():
     keywords = KeywordsOper.get_search_keywords()
     for each in keywords:
         if re.match(r"\d+:\d+", each[2]):
-            app.send_task('tasks.search.search_keyword_city', args=(each[0], each[1], each[2]),
+            app.send_task('tasks.search.search_keyword_city', args=(each[0], each[1], each[2], each[3].timestamp()),
                           queue='search_city_crawler',
                           routing_key='for_search_city_info')
 
@@ -113,12 +116,11 @@ def __search_history(task_url, keyword_id, area):
 
         search_page = get_page(cur_url, auth_level=2)
         if not search_page:
-            crawler.error('Searching for keyword range id {} failed in page {}, the source page url is {} ({})'
-                          .format(keyword_id, cur_page, cur_url, area))
+            crawler.error(f'Searching for keyword range id {keyword_id} failed in page {cur_page}, the source page url is {cur_url} ({area})')
             raise Exception('Cannot get page')
 
         if cur_page == 1 and 'noresult_tit' in search_page:
-            crawler.info('Keyword id {} query has no result ({})'.format(keyword_id, area))
+            crawler.info(f'Keyword id {keyword_id} query has no result ({area})')
             return
 
         search_list = parse_search.get_search_info(search_page)
@@ -132,7 +134,7 @@ def __search_history(task_url, keyword_id, area):
             if not rs:
                 wb_data_list.append(wb_data)
             if not wid:
-                keyword_timerange_wbid_list.append([keyword_id, wb_data.weibo_id])
+                keyword_timerange_wbid_list.append([keyword_id, wb_data.weibo_id, area])
             # send task for crawling user info
             app.send_task('tasks.user.crawl_person_infos', args=(wb_data.uid,), queue='user_crawler',
                           routing_key='for_user_info')
@@ -142,7 +144,7 @@ def __search_history(task_url, keyword_id, area):
         if 'class=\"next\"' in search_page:
             cur_page += 1
         else:
-            crawler.info('Keyword range id {} has been crawled in this turn ({})'.format(keyword_id, area))
+            crawler.info(f'Keyword range id {keyword_id} has been crawled in this turn ({area})')
             return
 
 
@@ -161,8 +163,7 @@ def search_keyword_timerange_all(keyword, keyword_id, date, hour1, hour2):
 @app.task(ignore_result=True)
 @session_used
 def search_keyword_timerange_city(keyword, keyword_id, date, hour1, hour2, area):
-    crawler.info('Searching for keyword "{}" at {} from {} to {}. ({})'
-                 .format(keyword, date, hour1, hour2, area))
+    crawler.info(f'Searching for keyword "{keyword}" at {date} from {hour1} to {hour2}. ({area})')
     task_url = partial(URL_TIMERANGE_CITY.format,
                        url_parse.quote(keyword), area,
                        "%s-%i" % (date, hour1),

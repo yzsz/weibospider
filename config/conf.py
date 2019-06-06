@@ -1,14 +1,14 @@
 import os
 import random
 
-from yaml import load
+from yaml import load, FullLoader
 
 config_path = os.path.join(os.path.dirname(__file__), 'spider.yaml')
 
 with open(config_path, encoding='utf-8') as f:
     cont = f.read()
 
-cf = load(cont)
+cf = load(cont, Loader=FullLoader)
 
 
 def get_db_args():

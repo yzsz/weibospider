@@ -51,7 +51,7 @@ def get_weibo_info_detail(each, html):
     if m:
         wb_data.uid = m.group(1)
     else:
-        parser.warning("fail to get user's id, the page source is{}".format(html))
+        parser.warning("fail to get user's id, the page source is {}".format(html))
         return None
 
     weibo_pattern = 'mid=(\\d+)'
@@ -137,10 +137,9 @@ def get_weibo_list(html):
     feed_list = soup.find_all(attrs={'action-type': 'feed_list_item'})
     weibo_datas = []
     for data in feed_list:
-        r = get_weibo_info_detail(data, html)
-        if r is not None:
-            wb_data = r[0]
-            if r[1] == 0 and CRAWLING_MODE == 'accurate':
+        wb_data, is_all_cont = get_weibo_info_detail(data, html)
+        if wb_data is not None:
+            if is_all_cont == 0 and CRAWLING_MODE == 'accurate':
                 weibo_location, weibo_cont = status.get_cont_of_weibo(wb_data.weibo_id)
                 wb_data.weibo_location = weibo_location if weibo_location else wb_data.weibo_location
                 wb_data.weibo_cont = weibo_cont if weibo_cont else wb_data.weibo_cont

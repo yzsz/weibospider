@@ -1,7 +1,7 @@
 import json
 
 
-def load_emoji_map(fn='../utils/emoji_ios6.json'):
+def load_emoji_map(fn='utils/emoji_ios6.json'):
     json_data = json.load(open(fn, encoding='utf-8'))
     sb_dict = {}
     for m in json_data:

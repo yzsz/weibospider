@@ -152,8 +152,8 @@ def get_search_info(html):
     """
     # 搜索结果可能有两种方式，一种是直接返回的，一种是编码过后的
     content = _search_page_parse(html) if '投诉' not in html else html
-    if content == '':
-        return list()
+    if content == '' or 'card-no-result' in html:
+        return []
     # todo 这里用bs会导致某些信息不能被解析（参考../tests/fail.html），可参考使用xpath，考虑到成本，暂时不实现
     soup = BeautifulSoup(content.encode('utf-8', 'ignore').decode('utf-8'), "html.parser")
     feed_list = soup.find_all(attrs={'action-type': 'feed_list_item'})

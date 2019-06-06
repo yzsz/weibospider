@@ -98,11 +98,6 @@ redis:
 
 kafka:
   bootstrap.servers: localhost:9092
-  retries: 1
-  acks: all
-  batch.size: 16384
-  linger.ms: 500
-  buffer.memory: 33554432
 
 
 # warning by email

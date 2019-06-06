@@ -54,7 +54,7 @@ def get_page(url, auth_level=2, is_ajax=False, need_proxy=False):
 
             if name_cookies is None:
                 crawler.warning('No cookie in cookies pool. Maybe all accounts are banned, or all cookies are expired')
-                send_email()
+                # send_email()
                 os.kill(os.getppid(), signal.SIGTERM)
 
             # There is no difference between http and https address.

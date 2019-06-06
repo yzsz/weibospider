@@ -7,7 +7,6 @@ from logger import (
     parser, crawler, storage, other)
 from utils import KThread
 from exceptions import Timeout
-from kafka.producer import kafka_flush
 
 
 def timeout_decorator(func):
@@ -138,12 +137,3 @@ def retry(times=-1, delay=0, exceptions=Exception, logger=other):
 
     return retry_oper
 
-
-def kafka_used(func):
-    @wraps(func)
-    def wrapper(*args, **kargs):
-        result = func(*args, **kargs)
-        kafka_flush()
-        return result
-
-    return wrapper

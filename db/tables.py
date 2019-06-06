@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Table, Column, INTEGER, String, Text, TIMESTAMP, DATE, DateTime, Boolean, func)
+    Table, Column, INTEGER, String, Text, TIMESTAMP, DATE, DateTime, Boolean)
 
 from .basic import metadata
 
@@ -49,6 +49,7 @@ keywords = Table('keywords', metadata,
                  Column("id", INTEGER, primary_key=True, autoincrement=True),
                  Column("keyword", String(200), unique=True, nullable=False),
                  Column("area", String(50), nullable=False),
+                 Column("task_start", TIMESTAMP, nullable=False),
                  Column("enable", INTEGER, default=1, nullable=False, server_default='1'),
                  )
 
@@ -107,7 +108,6 @@ keywords_wbdata_timerange = Table('keywords_wbdata_timerange', metadata,
 # datastreams = Table('datastreams', metadata,
 #                     Column("id", INTEGER, nullable=False),
 #                     Column("keywords_id", INTEGER, nullable=False),
-#                     Column("start_time", TIMESTAMP, nullable=False),
 #                     Column("enabled", INTEGER, nullable=False, default=1, server_default='1')
 #                     )
 
@@ -175,7 +175,8 @@ home_collections = Table("home_collections", metadata,
 home_ids = Table("home_ids", metadata,
                  Column("id", INTEGER, primary_key=True),
                  Column("home_collection_id", INTEGER, nullable=False),
-                 Column("uid", String(20), nullable=False))
+                 Column("uid", String(20), nullable=False),
+                 Column("task_start", TIMESTAMP, nullable=False))
 
 __all__ = ['login_info', 'wbuser', 'seed_ids', 'keywords', 'weibo_data', 'keywords_wbdata', 'weibo_comment',
            'weibo_repost', 'user_relation', 'weibo_dialogue', 'weibo_praise', 'keywords_timerange',

@@ -59,7 +59,7 @@ def get_encodename(name):
 # prelogin for servertime, nonce, pubkey, rsakv
 def get_server_data(su, session, proxy):
     pre_url = "http://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su="
-    pre_url = pre_url + su + "&rsakt=mod&checkpin=1&client=ssologin.js(v1.4.18)&_="
+    pre_url = pre_url + su + "&rsakt=mod&checkpin=1&client=ssologin.js(v1.4.19)&_="
     prelogin_url = pre_url + str(int(time.time() * 1000))
     pre_data_res = session.get(prelogin_url, headers=headers, proxies=proxy)
 
@@ -105,7 +105,7 @@ def get_redirect(name, data, post_url, session, proxy):
 
 
 def login_no_pincode(name, password, session, server_data, proxy):
-    post_url = 'http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)'
+    post_url = 'http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.19)'
 
     servertime = server_data["servertime"]
     nonce = server_data['nonce']
@@ -202,7 +202,7 @@ def do_login(name, password, proxy):
     su = get_encodename(name)
     server_data = get_server_data(su, session, proxy)
 
-    if server_data['showpin']:
+    if server_data.get('showpin'):
         rs, yundama_obj, cid, session = login_by_pincode(name, password, session, server_data, 0, proxy)
         if rs == 'pinerror':
             rs, yundama_obj, cid, session = login_retry(name, password, session, yundama_obj, cid, proxy)
